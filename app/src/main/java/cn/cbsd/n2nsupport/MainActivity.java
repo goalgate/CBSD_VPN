@@ -1,0 +1,121 @@
+package cn.cbsd.n2nsupport;
+
+import android.content.Intent;
+import android.net.VpnService;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.Toast;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
+
+import cn.cbsd.vpnx.Event.ConnectEvent;
+import cn.cbsd.vpnx.Event.DisconnectEvent;
+import cn.cbsd.vpnx.model.VPNStatus;
+import cn.cbsd.vpnx.service.VPNXService;
+
+public class MainActivity extends AppCompatActivity {
+
+    private static final int REQUECT_CODE_VPN = 1;
+
+    Button btn_openVPN;
+    Button btn_getVPNStatus;
+    VPNStatus.RunningStatus status;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        EventBus.getDefault().register(this);
+
+        btn_openVPN = (Button) findViewById(R.id.btn_VPN);
+        btn_getVPNStatus = (Button) findViewById(R.id.btn_VPNStatus);
+        btn_openVPN.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                status = VPNXService.INSTANCE == null ? VPNStatus.RunningStatus.DISCONNECT : VPNXService.INSTANCE.getVPNStatus();
+                if (VPNXService.INSTANCE != null && status != VPNStatus.RunningStatus.DISCONNECT && status != VPNStatus.RunningStatus.FAILED) {
+                    VPNXService.INSTANCE.stop();
+                } else {
+                    Intent vpnPrepareIntent = VpnService.prepare(MainActivity.this);
+                    if (vpnPrepareIntent != null) {
+                        startActivityForResult(vpnPrepareIntent, REQUECT_CODE_VPN);
+                    } else {
+                        onActivityResult(REQUECT_CODE_VPN, RESULT_OK, null);
+                    }
+                }
+            }
+        });
+        btn_getVPNStatus.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                status = VPNXService.INSTANCE == null ? VPNStatus.RunningStatus.DISCONNECT : VPNXService.INSTANCE.getVPNStatus();
+                switch (status) {
+                    case FAILED:
+                        Toast.makeText(MainActivity.this, "FAILED", Toast.LENGTH_LONG).show();
+                        break;
+                    case CONNECTED:
+                        Toast.makeText(MainActivity.this, "CONNECTED", Toast.LENGTH_LONG).show();
+                        break;
+                    case CONNECTING:
+                        Toast.makeText(MainActivity.this, "CONNECTING", Toast.LENGTH_LONG).show();
+                        break;
+                    case DISCONNECT:
+                        Toast.makeText(MainActivity.this, "DISCONNECT", Toast.LENGTH_LONG).show();
+                        break;
+                    case NODE_DISCONNECT:
+                        Toast.makeText(MainActivity.this, "SUPERNODE_DISCONNECT", Toast.LENGTH_LONG).show();
+                        break;
+                    default:
+                        break;
+
+                }
+            }
+        });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
+
+    Intent intent;
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUECT_CODE_VPN && resultCode == RESULT_OK) {
+            intent = new Intent(MainActivity.this, VPNXService.class);
+            startService(intent);
+        }
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void OnGetStartEvent(ConnectEvent event) {
+        Toast.makeText(MainActivity.this, "CONNECTED", Toast.LENGTH_LONG).show();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void DisconnectEvent(DisconnectEvent event) {
+        Toast.makeText(MainActivity.this, "DISCONNECTED", Toast.LENGTH_LONG).show();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void OnGetErrorEvent(Error event) {
+        Toast.makeText(MainActivity.this, "ERROR", Toast.LENGTH_LONG).show();
+    }
+
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        EventBus.getDefault().unregister(this);
+        if (intent != null) {
+            VPNXService.INSTANCE.stop();
+            stopService(intent);
+        }
+    }
+}

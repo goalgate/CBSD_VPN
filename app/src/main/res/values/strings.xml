@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">N2NSupport</string>
+
+    <string-array name="vpn_session_name">
+        <item>vpn_v1</item>
+        <item>vpn_v2</item>
+        <item>vpn_v3</item>
+    </string-array>
+</resources>
