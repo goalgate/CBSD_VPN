@@ -83,8 +83,8 @@ extern int start_edge_v2s(n2n_edge_status_t* status);
 extern int stop_edge_v2s(void);
 extern void report_edge_status(void);
 
-int get_WiFiMac(char * mac, int len_limit);
-int get_ethMac(char * mac, int len_limit);
+extern int get_WiFiMac(char * mac, int len_limit);
+extern int get_ethMac(char * mac, int len_limit);
 
 
 #endif /* __ANDROID_NDK__ */

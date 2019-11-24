@@ -21,7 +21,7 @@ static void ResetEdgeStatus(JNIEnv *env, uint8_t cleanup);
 
 static void InitEdgeStatus(void);
 
-static jclass Global_cls = NULL;
+static jobject mVpnService = NULL;
 
 static jobject mParcelFileDescriptor = NULL;
 
@@ -29,7 +29,7 @@ JNIEXPORT jboolean JNICALL Java_cn_cbsd_vpnx_service_VPNXService_vpnOpen(
         JNIEnv *env,
         jobject this) {
 
-     Global_cls = (*env)->GetObjectClass(env, this);
+    mVpnService = this;
 #ifndef NDEBUG
     __android_log_write(ANDROID_LOG_DEBUG, "edge_jni", "in start");
 #endif /* #ifndef NDEBUG */
@@ -119,6 +119,7 @@ JNIEXPORT void JNICALL Java_cn_cbsd_vpnx_service_VPNXService_vpnClose(
         (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/Exception"), "JNI抛出的异常！");
     }
     (*env)->DeleteGlobalRef(env,mParcelFileDescriptor);
+
 }
 
 JNIEXPORT jobject JNICALL Java_cn_cbsd_vpnx_service_VPNXService_getVPNStatus(
@@ -552,8 +553,8 @@ int GetEdgeCmd2(JNIEnv *env, jclass obj, n2n_edge_cmd_t *cmd) {
 
     // vpnFd
     {
-        jmethodID construct_VpnService = (*env)->GetMethodID(env, Global_cls, "<init>", "()V");
-        jobject mVpnService = (*env)->NewObject(env, Global_cls, construct_VpnService);
+//        jmethodID construct_VpnService = (*env)->GetMethodID(env, Global_cls, "<init>", "()V");
+//        jobject mVpnService = (*env)->NewObject(env, Global_cls, construct_VpnService);
 
         jclass cls_Builder = (*env)->FindClass(env, "android/net/VpnService$Builder");
         jmethodID construct_Builder = (*env)->GetMethodID(env, cls_Builder, "<init>",
@@ -580,7 +581,6 @@ int GetEdgeCmd2(JNIEnv *env, jclass obj, n2n_edge_cmd_t *cmd) {
 
         jclass cls_ParcelFileDescriptor = (*env)->FindClass(env, "android/os/ParcelFileDescriptor");
         jmethodID detachFd = (*env)->GetMethodID(env, cls_ParcelFileDescriptor, "detachFd", "()I");
-//        jobject mParcelFileDescriptor = (*env)->AllocObject(env, cls_ParcelFileDescriptor);
 
         jstring netmask = (*env)->NewStringUTF(env, &status.cmd.ip_netmask);
         jstring ipaddr = (*env)->NewStringUTF(env, &status.cmd.ip_addr);
@@ -595,7 +595,6 @@ int GetEdgeCmd2(JNIEnv *env, jclass obj, n2n_edge_cmd_t *cmd) {
         (*env)->CallObjectMethod(env, mBuilder, setSession, sessionName);
 
         mParcelFileDescriptor = (*env)->NewGlobalRef(env,(*env)->CallObjectMethod(env, mBuilder, establish));
-//        mParcelFileDescriptor = ;
         if ((*env)->ExceptionCheck(env)) {  // 检查JNI调用是否有引发异常
             (*env)->ExceptionDescribe(env);
             (*env)->ExceptionClear(env);        // 清除引发的异常，在Java层不会打印异常的堆栈信息
@@ -608,12 +607,11 @@ int GetEdgeCmd2(JNIEnv *env, jclass obj, n2n_edge_cmd_t *cmd) {
 #endif /* #ifndef NDEBUG */
 //
         (*env)->DeleteLocalRef(env, sessionName);
-//        (*env)->DeleteLocalRef(env, mParcelFileDescriptor);
-        (*env)->DeleteLocalRef(env, mVpnService);
         (*env)->DeleteLocalRef(env, mBuilder);
         (*env)->DeleteLocalRef(env, netmask);
         (*env)->DeleteLocalRef(env, ipaddr);
         (*env)->DeleteLocalRef(env, Route);
+
     }
 
     return 0;
