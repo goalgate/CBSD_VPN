@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.net.VpnService;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
@@ -11,11 +12,20 @@ import android.widget.Toast;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import cn.cbsd.vpnx.Event.ConnectEvent;
 import cn.cbsd.vpnx.Event.DisconnectEvent;
+import cn.cbsd.vpnx.Tool.ServerConnectTool;
+import cn.cbsd.vpnx.Tool.VPNLoginKey;
 import cn.cbsd.vpnx.model.VPNStatus;
 import cn.cbsd.vpnx.service.VPNXService;
+
+import static cn.cbsd.vpnx.service.VPNXService.VPNX_login;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -36,17 +46,50 @@ public class MainActivity extends AppCompatActivity {
         btn_openVPN.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                status = VPNXService.INSTANCE == null ? VPNStatus.RunningStatus.DISCONNECT : VPNXService.INSTANCE.getVPNStatus();
-                if (VPNXService.INSTANCE != null && status != VPNStatus.RunningStatus.DISCONNECT && status != VPNStatus.RunningStatus.FAILED) {
-                    VPNXService.INSTANCE.stop();
-                } else {
-                    Intent vpnPrepareIntent = VpnService.prepare(MainActivity.this);
-                    if (vpnPrepareIntent != null) {
-                        startActivityForResult(vpnPrepareIntent, REQUECT_CODE_VPN);
-                    } else {
-                        onActivityResult(REQUECT_CODE_VPN, RESULT_OK, null);
-                    }
+                final JSONObject jsonData = new JSONObject();
+                try{
+                    jsonData.put("logintype","ukey");
+                    jsonData.put("id","yzb_tscdw1");
+                    jsonData.put("password","1234");
+                    jsonData.put("project","yzb");
+                    jsonData.put("token", "4BDF80416DCF8E112C2E32F81D5BBB33");
+                }catch (JSONException e){
+                    e.printStackTrace();
                 }
+                String result = new VPNLoginKey().encryptStr(jsonData.toString());
+                Log.e("result", result);
+
+                VPNX_login("http://124.172.232.89:8050/daServer/vpn_jkapp?", "jsonData="+jsonData.toString(), new ServerConnectTool.Callback() {
+                    @Override
+                    public void onResponse(String response) {
+                        if(response.equals("noData")){
+                            Toast.makeText(MainActivity.this,"没有数据返回",Toast.LENGTH_SHORT).show();
+                        }
+                        String result = new VPNLoginKey().decryptStr(response);
+                        Log.e("result",result);
+
+                        try{
+                            JSONObject jsonObject = new JSONObject(result);
+                            Log.e("password",jsonObject.getString("password"));
+                        }catch (JSONException e){
+                            e.printStackTrace();
+                        }
+
+                    }
+                });
+//                status = VPNXService.INSTANCE == null ? VPNStatus.RunningStatus.DISCONNECT : VPNXService.INSTANCE.getVPNStatus();
+//                if (VPNXService.INSTANCE != null && status != VPNStatus.RunningStatus.DISCONNECT && status != VPNStatus.RunningStatus.FAILED) {
+//                    VPNXService.INSTANCE.stop();
+//                } else {
+//                    Intent vpnPrepareIntent = VpnService.prepare(MainActivity.this);
+//                    if (vpnPrepareIntent != null) {
+//                        startActivityForResult(vpnPrepareIntent, REQUECT_CODE_VPN);
+//                    } else {
+//                        onActivityResult(REQUECT_CODE_VPN, RESULT_OK, null);
+//                    }
+//                }
+
+
             }
         });
         btn_getVPNStatus.setOnClickListener(new View.OnClickListener() {
@@ -118,4 +161,5 @@ public class MainActivity extends AppCompatActivity {
             stopService(intent);
         }
     }
+
 }

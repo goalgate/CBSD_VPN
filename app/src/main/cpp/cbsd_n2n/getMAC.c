@@ -1,9 +1,7 @@
 //
 // Created by zbsz on 2019/11/20.
 //
-
-#include <android/log.h>
-#include <jni.h>
+// #include <jni.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <stdio.h>

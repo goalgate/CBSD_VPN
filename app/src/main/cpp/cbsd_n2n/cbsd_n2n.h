@@ -87,6 +87,10 @@ extern int get_WiFiMac(char * mac, int len_limit);
 extern int get_ethMac(char * mac, int len_limit);
 
 
+extern char* DES_Encrypt(char *sourceData, int sourceSize, char *keyStr, int *resultSize);
+
+extern char* DES_Decrypt(char *sourceData, int sourceSize, char *keyStr, int* resultSize);
+
 #endif /* __ANDROID_NDK__ */
 
 #endif //_EDGE_ANDROID_H_

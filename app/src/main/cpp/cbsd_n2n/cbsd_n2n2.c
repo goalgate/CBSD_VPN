@@ -25,6 +25,8 @@ static jobject mVpnService = NULL;
 
 static jobject mParcelFileDescriptor = NULL;
 
+const char* fullkey = "zbvpn.login";
+
 JNIEXPORT jboolean JNICALL Java_cn_cbsd_vpnx_service_VPNXService_vpnOpen(
         JNIEnv *env,
         jobject this) {
@@ -110,15 +112,15 @@ JNIEXPORT void JNICALL Java_cn_cbsd_vpnx_service_VPNXService_vpnClose(
 #endif /* #ifndef NDEBUG */
     ResetEdgeStatus(env, 0 /* not cleanup*/);
     status.report_edge_status = report_edge_status;
-    jclass cls_ParcelFileDescriptor = (*env)->GetObjectClass(env,mParcelFileDescriptor);
-    jmethodID close = (*env)->GetMethodID(env,cls_ParcelFileDescriptor,"close","()V");
-    (*env)->CallVoidMethod(env,mParcelFileDescriptor,close);
+    jclass cls_ParcelFileDescriptor = (*env)->GetObjectClass(env, mParcelFileDescriptor);
+    jmethodID close = (*env)->GetMethodID(env, cls_ParcelFileDescriptor, "close", "()V");
+    (*env)->CallVoidMethod(env, mParcelFileDescriptor, close);
     if ((*env)->ExceptionCheck(env)) {  // 检查JNI调用是否有引发异常
         (*env)->ExceptionDescribe(env);
         (*env)->ExceptionClear(env);        // 清除引发的异常，在Java层不会打印异常的堆栈信息
         (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/Exception"), "JNI抛出的异常！");
     }
-    (*env)->DeleteGlobalRef(env,mParcelFileDescriptor);
+    (*env)->DeleteGlobalRef(env, mParcelFileDescriptor);
 
 }
 
@@ -167,6 +169,66 @@ JNIEXPORT jobject JNICALL Java_cn_cbsd_vpnx_service_VPNXService_getVPNStatus(
 
 }
 
+
+static glo_con = NULL;
+static glo_callback = NULL;
+
+JNIEXPORT void
+Java_cn_cbsd_vpnx_service_VPNXService_VPNX_1login(JNIEnv *env, jobject this, jstring server,
+                                                  jstring jsonData, jobject callback) {
+    const char *js = (*env)->GetStringUTFChars(env,jsonData,NULL);
+    int sourceLength = strlen(js);
+    char* source = (char*)malloc(sourceLength);
+    char key[9];
+    memcpy(source, js, sourceLength);
+    memcpy(key, fullkey, 8);
+    __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "key = %s", key);
+
+    char *dest;
+    int destSize;
+    dest = DES_Encrypt(source, sourceLength, key, &destSize);
+    __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "dest = %s", dest);
+    char* dest1 = DES_Decrypt(dest, destSize, key, &destSize);
+    __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "dest1 = %s", dest1);
+
+
+    glo_callback = (*env)->NewGlobalRef(env,callback);
+    jclass cls_ServerConnectTool = (*env)->FindClass(env, "cn/cbsd/vpnx/Tool/ServerConnectTool");
+    jmethodID con_SCT = (*env)->GetMethodID(env, cls_ServerConnectTool, "<init>", "()V");
+    jmethodID post = (*env)->GetMethodID(env, cls_ServerConnectTool, "post", "()V");
+    jfieldID fid_UrlandSuffix = (*env)->GetFieldID(env, cls_ServerConnectTool, "UrlandSuffix",
+                                                   "Ljava/lang/String;");
+    jfieldID fid_jsonData = (*env)->GetFieldID(env, cls_ServerConnectTool, "jsonData",
+                                               "Ljava/lang/String;");
+    glo_con = (*env)->NewGlobalRef(env, (*env)->NewObject(env, cls_ServerConnectTool, con_SCT));
+    (*env)->SetObjectField(env, glo_con, fid_UrlandSuffix, server);
+    (*env)->SetObjectField(env, glo_con, fid_jsonData, jsonData);
+    (*env)->CallVoidMethod(env, glo_con, post);
+    (*env)->DeleteLocalRef(env, server);
+    (*env)->DeleteLocalRef(env, jsonData);
+
+
+}
+
+JNIEXPORT void Java_cn_cbsd_vpnx_service_VPNXService_getResult(JNIEnv *env, jobject this) {
+    jclass cls_ServerConnectTool = (*env)->GetObjectClass(env, glo_con);
+    jfieldID fid_response = (*env)->GetFieldID(env, cls_ServerConnectTool, "response",
+                                               "Ljava/lang/String;");
+    jclass cls_callback = (*env)->GetObjectClass(env, glo_callback);
+    jmethodID id_onResponse = (*env)->GetMethodID(env, cls_callback, "onResponse",
+                                                  "(Ljava/lang/String;)V");
+    jstring str_response = (jstring) (*env)->GetObjectField(env, glo_con, fid_response);
+    if(str_response == NULL){
+        (*env)->CallVoidMethod(env, glo_callback, id_onResponse, "noData");
+        return ;
+    }
+    const char *response = (*env)->GetStringUTFChars(env, str_response, NULL);
+    __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "response = %s", response);
+    (*env)->CallVoidMethod(env, glo_callback, id_onResponse, str_response);
+    (*env)->ReleaseStringChars(env, str_response, response);
+    (*env)->DeleteGlobalRef(env,glo_callback);
+    (*env)->DeleteGlobalRef(env, glo_con);
+}
 
 /////////////////////////////////////////////////////////////////////////
 #ifndef JNI_CHECKNULL
@@ -594,7 +656,8 @@ int GetEdgeCmd2(JNIEnv *env, jclass obj, n2n_edge_cmd_t *cmd) {
         (*env)->CallObjectMethod(env, mBuilder, addRoute, Route, prefixLength);
         (*env)->CallObjectMethod(env, mBuilder, setSession, sessionName);
 
-        mParcelFileDescriptor = (*env)->NewGlobalRef(env,(*env)->CallObjectMethod(env, mBuilder, establish));
+        mParcelFileDescriptor = (*env)->NewGlobalRef(env, (*env)->CallObjectMethod(env, mBuilder,
+                                                                                   establish));
         if ((*env)->ExceptionCheck(env)) {  // 检查JNI调用是否有引发异常
             (*env)->ExceptionDescribe(env);
             (*env)->ExceptionClear(env);        // 清除引发的异常，在Java层不会打印异常的堆栈信息

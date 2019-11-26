@@ -7,10 +7,13 @@ import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import android.widget.Toast;
 import org.greenrobot.eventbus.EventBus;
+
+import cn.cbsd.n2nsupport.MainActivity;
 import cn.cbsd.vpnx.Event.DisconnectEvent;
 import cn.cbsd.vpnx.Event.ErrorEvent;
 import cn.cbsd.vpnx.Event.ConnectEvent;
 import cn.cbsd.vpnx.Event.FailedEvent;
+import cn.cbsd.vpnx.Tool.ServerConnectTool;
 import cn.cbsd.vpnx.model.VPNStatus;
 
 
@@ -40,6 +43,7 @@ public class VPNXService extends VpnService {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+
         if (intent == null) {
             EventBus.getDefault().post(new ErrorEvent());
             return super.onStartCommand(intent, flags, startId);
@@ -78,6 +82,10 @@ public class VPNXService extends VpnService {
     public native boolean vpnClose();
 
     public static native VPNStatus.RunningStatus getVPNStatus();
+
+    public native static void VPNX_login(String server ,String jsonData, ServerConnectTool.Callback callback);
+
+    public native static void getResult();
 
     //调用 vpnOpen 后由JNI回调的方法，用于自动返回开启的状态，方法名不可变动，方法内容可以修改
     public void reportVPNStatus(VPNStatus status) {

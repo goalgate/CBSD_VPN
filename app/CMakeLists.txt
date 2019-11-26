@@ -37,6 +37,7 @@ include_directories(src/main/cpp src/main/cpp/slog src/main/cpp/tun2tap src/main
 add_library(cbsd_vpnx SHARED
         src/main/cpp/cbsd_n2n/cbsd_n2n2.c
         src/main/cpp/cbsd_n2n/getMAC.c
+        src/main/cpp/cbsd_n2n/DES.c
         )
 target_link_libraries(cbsd_vpnx vpn_v3)
 target_link_libraries(cbsd_vpnx vpn_v2)
