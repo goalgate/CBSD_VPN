@@ -1,11 +1,14 @@
 //
 // Created by zbsz on 2019/11/26.
 //
- #include "DES.h"
+#include <ctype.h>
+#include "DES.h"
 int ByteToBit(ElemType ch, ElemType bit[8]){
     int cnt;
     for(cnt = 0;cnt < 8; cnt++){
-        *(bit+cnt) = (ch>>cnt)&1;
+//        *(bit+cnt) = (ch>>cnt)&1;
+        *(bit+cnt) = ((ch<<cnt)&0x80)>>7;
+
     }
     return 0;
 }
@@ -14,13 +17,15 @@ int ByteToBit(ElemType ch, ElemType bit[8]){
 int BitToByte(ElemType bit[8],ElemType *ch){
     int cnt;
     for(cnt = 0;cnt < 8; cnt++){
-        *ch |= *(bit + cnt)<<cnt;
+//        *ch |= *(bit + cnt)<<cnt;
+        *ch|=*(bit+cnt)<<(7-cnt);
+
     }
     return 0;
 }
 
 /*将长度为8的字符串转为二进制位串*/
-int Char8ToBit64(ElemType ch[9],ElemType bit[64]){
+int Char8ToBit64(ElemType ch[8],ElemType bit[64]){
     int cnt;
     for(cnt = 0; cnt < 8; cnt++){
         ByteToBit(*(ch+cnt),bit+(cnt<<3));
@@ -340,7 +345,7 @@ int DES_DecryptWithFile(char *cipherFile, char *keyStr,char *plainFile){
 }
 
 /* 加密 */
-char* DES_Encrypt(char *sourceData, int sourceSize, char *keyStr, int *resultSize){
+char* DES_Encrypt(const char *sourceData, int sourceSize, char *keyStr, int *resultSize){
 
     char *destData = 0;
     int destSize = sourceSize;
@@ -355,7 +360,7 @@ char* DES_Encrypt(char *sourceData, int sourceSize, char *keyStr, int *resultSiz
     char subKeys[16][48];
 
     memcpy(keyBlock, keyStr, 8);
-    Char8ToBit64(keyBlock,bKey);
+    Char8ToBit64(keyStr,bKey);
     DES_MakeSubKeys(bKey,subKeys);
     int p = 0;
     while(p + 8 <= sourceSize){
@@ -423,5 +428,21 @@ char* DES_Decrypt(char *sourceData, int sourceSize, char *keyStr, int* resultSiz
         destData = resultData;
     }
 
+    return destData;
+}
+
+
+char* arrayToStr( char *buf, int buflen)
+{
+    char *destData = (char*)malloc(buflen*2);
+
+    char strBuf[1024]= {0};
+    char pbuf[2];
+    int i;
+    for(int i=0; i<buflen; i++){
+        sprintf(pbuf, "%02X", 0xFF &buf[i]);
+        strncat(strBuf, pbuf, 2);
+    }
+    strncpy(destData, strBuf, buflen * 2);
     return destData;
 }

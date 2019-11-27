@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
                 String result = new VPNLoginKey().encryptStr(jsonData.toString());
                 Log.e("result", result);
 
-                VPNX_login("http://124.172.232.89:8050/daServer/vpn_jkapp?", "jsonData="+jsonData.toString(), new ServerConnectTool.Callback() {
+                VPNX_login("http://124.172.232.89:8050/daServer/vpn_jkapp?", jsonData.toString(), new ServerConnectTool.Callback() {
                     @Override
                     public void onResponse(String response) {
                         if(response.equals("noData")){

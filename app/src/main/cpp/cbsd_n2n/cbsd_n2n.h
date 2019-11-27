@@ -9,6 +9,7 @@
 
 #include <jni.h>
 #include <pthread.h>
+#include <ctype.h>
 
 #define EDGE_CMD_IPSTR_SIZE 16
 #define EDGE_CMD_SUPERNODES_NUM 2
@@ -17,6 +18,7 @@
 #define EDGE_CMD_COMMUNITY_SIZE 16
 #define EDGE_CMD_HOLEPUNCH_INTERVAL 25
 
+typedef char ElemType;
 
 typedef struct n2n_edge_cmd_st
 {
@@ -87,9 +89,11 @@ extern int get_WiFiMac(char * mac, int len_limit);
 extern int get_ethMac(char * mac, int len_limit);
 
 
-extern char* DES_Encrypt(char *sourceData, int sourceSize, char *keyStr, int *resultSize);
+extern char* DES_Encrypt(const char *sourceData, int sourceSize, char *keyStr, int *resultSize);
 
 extern char* DES_Decrypt(char *sourceData, int sourceSize, char *keyStr, int* resultSize);
+
+extern char* arrayToStr( char *buf, int buflen);
 
 #endif /* __ANDROID_NDK__ */
 

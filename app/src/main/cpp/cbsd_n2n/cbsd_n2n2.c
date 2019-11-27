@@ -9,6 +9,7 @@
 #include <sys/socket.h>
 #include "cbsd_n2n.h"
 
+
 static n2n_edge_status_t status;
 
 static int GetEdgeCmd(JNIEnv *env, jobject jcmd, n2n_edge_cmd_t *cmd);
@@ -25,7 +26,9 @@ static jobject mVpnService = NULL;
 
 static jobject mParcelFileDescriptor = NULL;
 
-const char* fullkey = "zbvpn.login";
+const char *fullkey = "zbvpn.login";
+
+const char jsonDataPreffix[1024] = "jsonData=";
 
 JNIEXPORT jboolean JNICALL Java_cn_cbsd_vpnx_service_VPNXService_vpnOpen(
         JNIEnv *env,
@@ -176,23 +179,20 @@ static glo_callback = NULL;
 JNIEXPORT void
 Java_cn_cbsd_vpnx_service_VPNXService_VPNX_1login(JNIEnv *env, jobject this, jstring server,
                                                   jstring jsonData, jobject callback) {
-    const char *js = (*env)->GetStringUTFChars(env,jsonData,NULL);
-    int sourceLength = strlen(js);
-    char* source = (char*)malloc(sourceLength);
-    char key[9];
-    memcpy(source, js, sourceLength);
+
+    char key[8];
     memcpy(key, fullkey, 8);
     __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "key = %s", key);
 
-    char *dest;
     int destSize;
-    dest = DES_Encrypt(source, sourceLength, key, &destSize);
-    __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "dest = %s", dest);
-    char* dest1 = DES_Decrypt(dest, destSize, key, &destSize);
-    __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "dest1 = %s", dest1);
+    const char *js = (*env)->GetStringUTFChars(env, jsonData, NULL);
+    char *dest = DES_Encrypt(js, strlen(js), key, &destSize);
+    char uploadJson[1024];
+    strcpy(uploadJson, jsonDataPreffix);
+    strcat(uploadJson, arrayToStr(dest, destSize));
 
-
-    glo_callback = (*env)->NewGlobalRef(env,callback);
+    jstring js_uploadJson = (*env)->NewStringUTF(env, uploadJson);
+    glo_callback = (*env)->NewGlobalRef(env, callback);
     jclass cls_ServerConnectTool = (*env)->FindClass(env, "cn/cbsd/vpnx/Tool/ServerConnectTool");
     jmethodID con_SCT = (*env)->GetMethodID(env, cls_ServerConnectTool, "<init>", "()V");
     jmethodID post = (*env)->GetMethodID(env, cls_ServerConnectTool, "post", "()V");
@@ -202,12 +202,15 @@ Java_cn_cbsd_vpnx_service_VPNXService_VPNX_1login(JNIEnv *env, jobject this, jst
                                                "Ljava/lang/String;");
     glo_con = (*env)->NewGlobalRef(env, (*env)->NewObject(env, cls_ServerConnectTool, con_SCT));
     (*env)->SetObjectField(env, glo_con, fid_UrlandSuffix, server);
-    (*env)->SetObjectField(env, glo_con, fid_jsonData, jsonData);
+    (*env)->SetObjectField(env, glo_con, fid_jsonData, js_uploadJson);
+    __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "%s", uploadJson);
     (*env)->CallVoidMethod(env, glo_con, post);
-    (*env)->DeleteLocalRef(env, server);
+
+
+    (*env)->ReleaseStringChars(env, jsonData, js);
     (*env)->DeleteLocalRef(env, jsonData);
-
-
+    (*env)->DeleteLocalRef(env, js_uploadJson);
+    (*env)->DeleteLocalRef(env, server);
 }
 
 JNIEXPORT void Java_cn_cbsd_vpnx_service_VPNXService_getResult(JNIEnv *env, jobject this) {
@@ -218,16 +221,20 @@ JNIEXPORT void Java_cn_cbsd_vpnx_service_VPNXService_getResult(JNIEnv *env, jobj
     jmethodID id_onResponse = (*env)->GetMethodID(env, cls_callback, "onResponse",
                                                   "(Ljava/lang/String;)V");
     jstring str_response = (jstring) (*env)->GetObjectField(env, glo_con, fid_response);
-    if(str_response == NULL){
-        (*env)->CallVoidMethod(env, glo_callback, id_onResponse, "noData");
-        return ;
+    if (str_response == NULL) {
+        (*env)->CallVoidMethod(env, glo_callback, id_onResponse, (*env)->NewStringUTF(env,"noData"));
+        (*env)->DeleteLocalRef(env, str_response);
+        (*env)->DeleteGlobalRef(env, glo_callback);
+        (*env)->DeleteGlobalRef(env, glo_con);
+        return;
     }
     const char *response = (*env)->GetStringUTFChars(env, str_response, NULL);
     __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "response = %s", response);
     (*env)->CallVoidMethod(env, glo_callback, id_onResponse, str_response);
     (*env)->ReleaseStringChars(env, str_response, response);
-    (*env)->DeleteGlobalRef(env,glo_callback);
+    (*env)->DeleteGlobalRef(env, glo_callback);
     (*env)->DeleteGlobalRef(env, glo_con);
+
 }
 
 /////////////////////////////////////////////////////////////////////////

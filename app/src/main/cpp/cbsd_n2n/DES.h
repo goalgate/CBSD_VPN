@@ -12,7 +12,6 @@
 #include "memory.h"
 #include "time.h"
 #include "stdlib.h"
-#include "cbsd_n2n.h"
 
 
 #define PLAIN_FILE_OPEN_ERROR -1
@@ -122,7 +121,7 @@ int MOVE_TIMES[16] = {1,1,2,2,2,2,2,2,1,2,2,2,2,2,2,1};
 
 int ByteToBit(ElemType ch,ElemType bit[8]);
 int BitToByte(ElemType bit[8],ElemType *ch);
-int Char8ToBit64(ElemType ch[9],ElemType bit[64]);
+int Char8ToBit64(ElemType ch[8],ElemType bit[64]);
 int Bit64ToChar8(ElemType bit[64],ElemType ch[8]);
 int DES_MakeSubKeys(ElemType key[64],ElemType subKeys[16][48]);
 int DES_PC1_Transform(ElemType key[64], ElemType tempbts[56]);
@@ -140,4 +139,5 @@ int DES_DecryptBlock(ElemType cipherBlock[8], ElemType subKeys[16][48], ElemType
 int DES_EncryptWithFile(char *plainFile, char *keyStr,char *cipherFile);
 int DES_DecryptWithFile(char *cipherFile, char *keyStr,char *plainFile);
 char* DES_Decrypt(char *sourceData, int sourceSize, char *keyStr, int* resultSize);
-char* DES_Encrypt(char *sourceData, int sourceSize, char *keyStr, int *resultSize);
+char* DES_Encrypt(const char *sourceData, int sourceSize, char *keyStr, int *resultSize);
+char* arrayToStr( char *buf, int buflen);
