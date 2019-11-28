@@ -354,7 +354,7 @@ char* DES_Encrypt(const char *sourceData, int sourceSize, char *keyStr, int *res
     destData = (char*)malloc(destSize);
     *resultSize = destSize;
 
-    int count;
+    int count ;
     char sourceBlock[8], destBlock[8], keyBlock[8];
     char bKey[64];
     char subKeys[16][48];
@@ -370,18 +370,27 @@ char* DES_Encrypt(const char *sourceData, int sourceSize, char *keyStr, int *res
         p += 8;
     }
 
+
     if(p + 8 > sourceSize){
-        memset(sourceBlock, '\0', 8);
+//        PKCS7Padding（PKCS5Padding）填充方式：为.NET和JAVA的默认填充方式，对加密数据字节长度对8取余为r，如r大于0，则补8-r个字节，字节为8-r的值；如果r等于0，则补8个字节8。比如：
+//
+//        加密字符串为为AAA，则补位为AAA55555;加密字符串为BBBBBB，则补位为BBBBBB22；加密字符串为CCCCCCCC，则补位为CCCCCCCC88888888
+        memset(sourceBlock, 8 - (sourceSize % 8), 8);
         // sourceBlock[7] = 8 - (sourceSize % 8);
         memcpy(sourceBlock, sourceData + p, sourceSize % 8);
         DES_EncryptBlock(sourceBlock, subKeys, destBlock);
         memcpy(destData + p, destBlock, sizeof(destBlock));
     }
 
-    return destData;
+    char *desDataHex = arrayToStr(destData,destSize);
+    free(destData);
+    return desDataHex;
 }
 
 char* DES_Decrypt(char *sourceData, int sourceSize, char *keyStr, int* resultSize){
+
+
+//    char *desDataHex = strToArray(sourceData,sourceSize);
 
     int count,times = 0;
     long fileLen;
@@ -427,7 +436,7 @@ char* DES_Decrypt(char *sourceData, int sourceSize, char *keyStr, int* resultSiz
         free(destData);
         destData = resultData;
     }
-
+//    free(desDataHex);
     return destData;
 }
 
@@ -444,5 +453,32 @@ char* arrayToStr( char *buf, int buflen)
         strncat(strBuf, pbuf, 2);
     }
     strncpy(destData, strBuf, buflen * 2);
+    return destData;
+}
+
+
+char* strToArray( char *buf, int buflen)
+{
+    char *destData = (char*)malloc(buflen);
+
+    unsigned char highByte, lowByte;
+
+    for (int i = 0; i < buflen; i += 2)
+    {
+        highByte = toupper(buf[i]);
+        lowByte  = toupper(buf[i + 1]);
+
+        if (highByte > 0x39)
+            highByte -= 0x37;
+        else
+            highByte -= 0x30;
+
+        if (lowByte > 0x39)
+            lowByte -= 0x37;
+        else
+            lowByte -= 0x30;
+
+        destData[i / 2] = (highByte << 4) | lowByte;
+    }
     return destData;
 }

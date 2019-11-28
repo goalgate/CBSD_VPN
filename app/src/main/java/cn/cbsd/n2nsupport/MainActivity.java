@@ -28,6 +28,7 @@ import cn.cbsd.vpnx.service.VPNXService;
 import static cn.cbsd.vpnx.service.VPNXService.VPNX_login;
 
 public class MainActivity extends AppCompatActivity {
+    final static String UrlandSuffix = "http://124.172.232.89:8050/daServer/vpn_jkapp?";
 
     private static final int REQUECT_CODE_VPN = 1;
 
@@ -47,33 +48,30 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 final JSONObject jsonData = new JSONObject();
-                try{
-                    jsonData.put("logintype","ukey");
-                    jsonData.put("id","yzb_tscdw1");
-                    jsonData.put("password","1234");
-                    jsonData.put("project","yzb");
+                try {
+                    jsonData.put("logintype", "ukey");
+                    jsonData.put("id", "yzb_tscdw1");
+                    jsonData.put("password", "1234");
+                    jsonData.put("project", "yzb");
                     jsonData.put("token", "4BDF80416DCF8E112C2E32F81D5BBB33");
-                }catch (JSONException e){
+                } catch (JSONException e) {
                     e.printStackTrace();
                 }
-                String result = new VPNLoginKey().encryptStr(jsonData.toString());
-                Log.e("result", result);
-
-                VPNX_login("http://124.172.232.89:8050/daServer/vpn_jkapp?", jsonData.toString(), new ServerConnectTool.Callback() {
+                VPNX_login(UrlandSuffix, jsonData.toString(), new ServerConnectTool.Callback() {
                     @Override
                     public void onResponse(String response) {
-                        if(response.equals("noData")){
-                            Toast.makeText(MainActivity.this,"没有数据返回",Toast.LENGTH_SHORT).show();
+                        if (response == null) {
+                            Toast.makeText(MainActivity.this, "没有数据返回", Toast.LENGTH_SHORT).show();
                         }
                         String result = new VPNLoginKey().decryptStr(response);
-                        Log.e("result",result);
+                        Log.e("result", result);
 
-                        try{
-                            JSONObject jsonObject = new JSONObject(result);
-                            Log.e("password",jsonObject.getString("password"));
-                        }catch (JSONException e){
-                            e.printStackTrace();
-                        }
+//                        try {
+//                            JSONObject jsonObject = new JSONObject(result);
+//                            Log.e("password", jsonObject.getString("password"));
+//                        } catch (JSONException e) {
+//                            e.printStackTrace();
+//                        }
 
                     }
                 });

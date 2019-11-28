@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <sys/socket.h>
 #include "cbsd_n2n.h"
+#include "cJSON.h"
 
 
 static n2n_edge_status_t status;
@@ -22,13 +23,15 @@ static void ResetEdgeStatus(JNIEnv *env, uint8_t cleanup);
 
 static void InitEdgeStatus(void);
 
+void parseJson(JNIEnv *env, char *data) ;
+
 static jobject mVpnService = NULL;
 
 static jobject mParcelFileDescriptor = NULL;
 
 const char *fullkey = "zbvpn.login";
 
-const char jsonDataPreffix[1024] = "jsonData=";
+const char jsonDataPreffix[10] = "jsonData=";
 
 JNIEXPORT jboolean JNICALL Java_cn_cbsd_vpnx_service_VPNXService_vpnOpen(
         JNIEnv *env,
@@ -180,17 +183,16 @@ JNIEXPORT void
 Java_cn_cbsd_vpnx_service_VPNXService_VPNX_1login(JNIEnv *env, jobject this, jstring server,
                                                   jstring jsonData, jobject callback) {
 
-    char key[8];
+    char *key = (char *) malloc(8);
     memcpy(key, fullkey, 8);
-    __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "key = %s", key);
-
     int destSize;
     const char *js = (*env)->GetStringUTFChars(env, jsonData, NULL);
-    char *dest = DES_Encrypt(js, strlen(js), key, &destSize);
-    char uploadJson[1024];
+    char *js_Enc = DES_Encrypt(js, strlen(js), key, &destSize);
+//    char *response_dec = DES_Decrypt(js_Enc, destSize, key, &destSize);
+//    __android_log_print(ANDROID_LOG_ERROR, "edge_jni", "response_dec = %s", response_dec);
+    char *uploadJson = (char *) malloc(1024);
     strcpy(uploadJson, jsonDataPreffix);
-    strcat(uploadJson, arrayToStr(dest, destSize));
-
+    strcat(uploadJson, js_Enc);
     jstring js_uploadJson = (*env)->NewStringUTF(env, uploadJson);
     glo_callback = (*env)->NewGlobalRef(env, callback);
     jclass cls_ServerConnectTool = (*env)->FindClass(env, "cn/cbsd/vpnx/Tool/ServerConnectTool");
@@ -203,14 +205,18 @@ Java_cn_cbsd_vpnx_service_VPNXService_VPNX_1login(JNIEnv *env, jobject this, jst
     glo_con = (*env)->NewGlobalRef(env, (*env)->NewObject(env, cls_ServerConnectTool, con_SCT));
     (*env)->SetObjectField(env, glo_con, fid_UrlandSuffix, server);
     (*env)->SetObjectField(env, glo_con, fid_jsonData, js_uploadJson);
-    __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "%s", uploadJson);
     (*env)->CallVoidMethod(env, glo_con, post);
 
 
+    free(key);
+    free(js_Enc);
+    free(uploadJson);
     (*env)->ReleaseStringChars(env, jsonData, js);
     (*env)->DeleteLocalRef(env, jsonData);
     (*env)->DeleteLocalRef(env, js_uploadJson);
     (*env)->DeleteLocalRef(env, server);
+
+
 }
 
 JNIEXPORT void Java_cn_cbsd_vpnx_service_VPNXService_getResult(JNIEnv *env, jobject this) {
@@ -222,15 +228,49 @@ JNIEXPORT void Java_cn_cbsd_vpnx_service_VPNXService_getResult(JNIEnv *env, jobj
                                                   "(Ljava/lang/String;)V");
     jstring str_response = (jstring) (*env)->GetObjectField(env, glo_con, fid_response);
     if (str_response == NULL) {
-        (*env)->CallVoidMethod(env, glo_callback, id_onResponse, (*env)->NewStringUTF(env,"noData"));
+        (*env)->CallVoidMethod(env, glo_callback, id_onResponse, str_response);
         (*env)->DeleteLocalRef(env, str_response);
         (*env)->DeleteGlobalRef(env, glo_callback);
         (*env)->DeleteGlobalRef(env, glo_con);
         return;
     }
+
+    char *key = (char *) malloc(8);
+    memcpy(key, fullkey, 8);
+    int destSize;
+
     const char *response = (*env)->GetStringUTFChars(env, str_response, NULL);
-    __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "response = %s", response);
+    char *response_copy = (char *) malloc(strlen(response));
+    strcpy(response_copy, response);
+    char *dsadsd = strToArray(response_copy,strlen(response_copy));
+    char *response_dec = DES_Decrypt(dsadsd, strlen(response_copy), key, &destSize);
+    __android_log_print(ANDROID_LOG_ERROR, "edge_jni", "response_dec = %s", response_dec);
+
+
     (*env)->CallVoidMethod(env, glo_callback, id_onResponse, str_response);
+
+
+    jclass cls_JSONObject = (*env)->FindClass(env, "org/json/JSONObject");
+    jmethodID con_JSONObject = (*env)->GetMethodID(env, cls_JSONObject, "<init>",
+                                                   "(Ljava/lang/String;)V");
+    jmethodID getString = (*env)->GetMethodID(env, cls_JSONObject, "getString",
+                                              "(Ljava/lang/String;)Ljava/lang/String;");
+    jstring jsonData = (*env)->NewStringUTF(env, response_dec);
+    jobject jsonObject = (*env)->NewObject(env, cls_JSONObject, con_JSONObject, jsonData);
+    jstring result = (jstring) (*env)->CallObjectMethod(env, jsonObject, getString, "result");
+    const char *result_str = (*env)->GetStringUTFChars(env, result, NULL);
+    __android_log_print(ANDROID_LOG_ERROR, "edge_jni", "result_str = %s", result_str);
+
+
+    (*env)->DeleteLocalRef(env, jsonData);
+    (*env)->DeleteLocalRef(env, jsonObject);
+    (*env)->ReleaseStringChars(env, result, result_str);
+
+
+
+    free(key);
+    free(response_copy);
+    free(response_dec);
     (*env)->ReleaseStringChars(env, str_response, response);
     (*env)->DeleteGlobalRef(env, glo_callback);
     (*env)->DeleteGlobalRef(env, glo_con);
@@ -241,6 +281,26 @@ JNIEXPORT void Java_cn_cbsd_vpnx_service_VPNXService_getResult(JNIEnv *env, jobj
 #ifndef JNI_CHECKNULL
 #define JNI_CHECKNULL(p)            do { if (!(p)) return 1;}while(0)
 #endif /* JNI_CHECKNULL */
+
+
+void parseJson(JNIEnv *env, char *data) {
+    jclass cls_JSONObject = (*env)->FindClass(env, "org/json/JSONObject");
+    jmethodID con_JSONObject = (*env)->GetMethodID(env, cls_JSONObject, "<init>",
+                                                   "(Ljava/lang/String;)V");
+    jmethodID getString = (*env)->GetMethodID(env, cls_JSONObject, "getString",
+                                              "(Ljava/lang/String;)Ljava/lang/String;");
+    jstring jsonData = (*env)->NewStringUTF(env, data);
+    jobject jsonObject = (*env)->NewObject(env, cls_JSONObject, con_JSONObject, jsonData);
+    jstring result = (jstring) (*env)->CallObjectMethod(env, jsonObject, getString, "result");
+    const char *result_str = (*env)->GetStringUTFChars(env, result, NULL);
+    __android_log_print(ANDROID_LOG_ERROR, "edge_jni", "result_str = %s", result_str);
+
+
+    (*env)->DeleteLocalRef(env, jsonData);
+    (*env)->DeleteLocalRef(env, jsonObject);
+    (*env)->ReleaseStringChars(env, result, result_str);
+}
+
 
 int GetEdgeCmd(JNIEnv *env, jobject jcmd, n2n_edge_cmd_t *cmd) {
     jclass cls;
