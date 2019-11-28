@@ -141,3 +141,4 @@ int DES_DecryptWithFile(char *cipherFile, char *keyStr,char *plainFile);
 char* DES_Decrypt(char *sourceData, int sourceSize, char *keyStr, int* resultSize);
 char* DES_Encrypt(const char *sourceData, int sourceSize, char *keyStr, int *resultSize);
 char* arrayToStr( char *buf, int buflen);
+char* strToArray( char *buf, int buflen);

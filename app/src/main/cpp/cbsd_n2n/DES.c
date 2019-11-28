@@ -1,6 +1,7 @@
 //
 // Created by zbsz on 2019/11/26.
 //
+
 #include <ctype.h>
 #include "DES.h"
 int ByteToBit(ElemType ch, ElemType bit[8]){
@@ -390,7 +391,7 @@ char* DES_Encrypt(const char *sourceData, int sourceSize, char *keyStr, int *res
 char* DES_Decrypt(char *sourceData, int sourceSize, char *keyStr, int* resultSize){
 
 
-//    char *desDataHex = strToArray(sourceData,sourceSize);
+    char *desDataHex = strToArray(sourceData,sourceSize);
 
     int count,times = 0;
     long fileLen;
@@ -406,7 +407,7 @@ char* DES_Decrypt(char *sourceData, int sourceSize, char *keyStr, int* resultSiz
 
     int p = 0;
     while(p < sourceSize){
-        memcpy(sourceBlock, sourceData + p, 8);
+        memcpy(sourceBlock, desDataHex + p, 8);
         DES_DecryptBlock(sourceBlock, subKeys, destBlock);
         memcpy(destData + p, destBlock, 8);
         p+= 8;
@@ -436,7 +437,7 @@ char* DES_Decrypt(char *sourceData, int sourceSize, char *keyStr, int* resultSiz
         free(destData);
         destData = resultData;
     }
-//    free(desDataHex);
+    free(desDataHex);
     return destData;
 }
 
