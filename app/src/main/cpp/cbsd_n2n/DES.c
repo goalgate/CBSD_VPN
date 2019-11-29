@@ -388,7 +388,7 @@ char* DES_Encrypt(const char *sourceData, int sourceSize, char *keyStr, int *res
     return desDataHex;
 }
 
-char* DES_Decrypt(char *sourceData, int sourceSize, char *keyStr, int* resultSize){
+char* DES_Decrypt(const char *sourceData, int sourceSize, char *keyStr, int* resultSize){
 
 
     char *desDataHex = strToArray(sourceData,sourceSize);
@@ -458,7 +458,7 @@ char* arrayToStr( char *buf, int buflen)
 }
 
 
-char* strToArray( char *buf, int buflen)
+char* strToArray(const char *buf, int buflen)
 {
     char *destData = (char*)malloc(buflen);
 

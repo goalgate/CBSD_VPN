@@ -47,45 +47,40 @@ public class MainActivity extends AppCompatActivity {
         btn_openVPN.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                final JSONObject jsonData = new JSONObject();
-                try {
-                    jsonData.put("logintype", "ukey");
-                    jsonData.put("id", "yzb_tscdw1");
-                    jsonData.put("password", "1234");
-                    jsonData.put("project", "yzb");
-                    jsonData.put("token", "4BDF80416DCF8E112C2E32F81D5BBB33");
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                VPNX_login(UrlandSuffix, jsonData.toString(), new ServerConnectTool.Callback() {
-                    @Override
-                    public void onResponse(String response) {
-                        if (response == null) {
-                            Toast.makeText(MainActivity.this, "没有数据返回", Toast.LENGTH_SHORT).show();
-                        }
-                        String result = new VPNLoginKey().decryptStr(response);
-                        Log.e("result", result);
 
-//                        try {
-//                            JSONObject jsonObject = new JSONObject(result);
-//                            Log.e("password", jsonObject.getString("password"));
-//                        } catch (JSONException e) {
-//                            e.printStackTrace();
-//                        }
-
+                status = VPNXService.INSTANCE == null ? VPNStatus.RunningStatus.DISCONNECT : VPNXService.INSTANCE.getVPNStatus();
+                if (VPNXService.INSTANCE != null && status != VPNStatus.RunningStatus.DISCONNECT && status != VPNStatus.RunningStatus.FAILED) {
+                    VPNXService.INSTANCE.stop();
+                } else {
+                    final JSONObject jsonData = new JSONObject();
+                    try {
+                        jsonData.put("logintype", "ukey");
+                        jsonData.put("id", "yzb_tscdw1");
+                        jsonData.put("password", "1234");
+                        jsonData.put("project", "yzb");
+                        jsonData.put("token", "4BDF80416DCF8E112C2E32F81D5BBB33");
+                    } catch (JSONException e) {
+                        e.printStackTrace();
                     }
-                });
-//                status = VPNXService.INSTANCE == null ? VPNStatus.RunningStatus.DISCONNECT : VPNXService.INSTANCE.getVPNStatus();
-//                if (VPNXService.INSTANCE != null && status != VPNStatus.RunningStatus.DISCONNECT && status != VPNStatus.RunningStatus.FAILED) {
-//                    VPNXService.INSTANCE.stop();
-//                } else {
-//                    Intent vpnPrepareIntent = VpnService.prepare(MainActivity.this);
-//                    if (vpnPrepareIntent != null) {
-//                        startActivityForResult(vpnPrepareIntent, REQUECT_CODE_VPN);
-//                    } else {
-//                        onActivityResult(REQUECT_CODE_VPN, RESULT_OK, null);
-//                    }
-//                }
+                    VPNX_login(UrlandSuffix, jsonData.toString(), new ServerConnectTool.Callback() {
+                        @Override
+                        public void onResponse(String response) {
+                            Log.e("sds",response);
+                            if (response == null) {
+                                Toast.makeText(MainActivity.this, "没有数据返回", Toast.LENGTH_SHORT).show();
+                            } else if(response.equals("true") ) {
+                                Intent vpnPrepareIntent = VpnService.prepare(MainActivity.this);
+                                if (vpnPrepareIntent != null) {
+                                    startActivityForResult(vpnPrepareIntent, REQUECT_CODE_VPN);
+                                } else {
+                                    onActivityResult(REQUECT_CODE_VPN, RESULT_OK, null);
+                                }
+                            }
+                        }
+                    });
+
+
+                }
 
 
             }

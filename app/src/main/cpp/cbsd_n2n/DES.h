@@ -138,7 +138,7 @@ int DES_EncryptBlock(ElemType plainBlock[8], ElemType subKeys[16][48], ElemType 
 int DES_DecryptBlock(ElemType cipherBlock[8], ElemType subKeys[16][48], ElemType plainBlock[8]);
 int DES_EncryptWithFile(char *plainFile, char *keyStr,char *cipherFile);
 int DES_DecryptWithFile(char *cipherFile, char *keyStr,char *plainFile);
-char* DES_Decrypt(char *sourceData, int sourceSize, char *keyStr, int* resultSize);
+char* DES_Decrypt(const char *sourceData, int sourceSize, char *keyStr, int* resultSize);
 char* DES_Encrypt(const char *sourceData, int sourceSize, char *keyStr, int *resultSize);
 char* arrayToStr( char *buf, int buflen);
-char* strToArray( char *buf, int buflen);
+char* strToArray(const char *buf, int buflen);

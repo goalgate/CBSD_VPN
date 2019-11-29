@@ -183,9 +183,7 @@ Java_cn_cbsd_vpnx_service_VPNXService_VPNX_1login(JNIEnv *env, jobject this, jst
     char *key = (char *) malloc(8);
     memcpy(key, fullkey, 8);
     int destSize;
-    const char *js= (*env)->GetStringUTFChars(env, jsonData, NULL);
-    __android_log_print(ANDROID_LOG_ERROR, "edge_jni", "js = %s", js);
-
+    const char *js = (*env)->GetStringUTFChars(env, jsonData, NULL);
     char *js_Enc = DES_Encrypt(js, strlen(js), key, &destSize);
     char *uploadJson = (char *) malloc(1024);
     strcpy(uploadJson, jsonDataPreffix);
@@ -234,37 +232,59 @@ JNIEXPORT void Java_cn_cbsd_vpnx_service_VPNXService_getResult(JNIEnv *env, jobj
 
     char *key = (char *) malloc(8);
     memcpy(key, fullkey, 8);
-    int destSize;
-
     const char *response = (*env)->GetStringUTFChars(env, str_response, NULL);
-    char *response_copy = (char *) malloc(strlen(response));
-    strcpy(response_copy, response);
-    char *response_dec = DES_Decrypt(response_copy, 320, key, &destSize);
-    __android_log_print(ANDROID_LOG_ERROR, "edge_jni", "response_dec = %s", response_dec);
-    (*env)->CallVoidMethod(env, glo_callback, id_onResponse, str_response);
+    int destSize;
+    char *response_dec = DES_Decrypt(response, strlen(response), key, &destSize);
+    char *respones_dec2 = (char *) malloc(strlen(response) / 2);
+    memcpy(respones_dec2, response_dec, strlen(response) / 2);
+
+    jclass cls_JSONObject = (*env)->FindClass(env, "org/json/JSONObject");
+    jmethodID con_JSONObject = (*env)->GetMethodID(env, cls_JSONObject, "<init>",
+                                                   "(Ljava/lang/String;)V");
+    jmethodID getString = (*env)->GetMethodID(env, cls_JSONObject, "getString",
+                                              "(Ljava/lang/String;)Ljava/lang/String;");
+    jstring jsonData = (*env)->NewStringUTF(env, respones_dec2);
+    jobject jsonObject = (*env)->NewObject(env, cls_JSONObject, con_JSONObject, jsonData);
+
+    jstring head_result = (*env)->NewStringUTF(env, "result");
+    jstring value_result = (jstring) (*env)->CallObjectMethod(env, jsonObject, getString,head_result);
+    const char *result_str = (*env)->GetStringUTFChars(env, value_result, NULL);
+    if(result_str != "true"){
+        (*env)->CallVoidMethod(env, glo_callback, id_onResponse, value_result);
+    }else{
+        (*env)->CallVoidMethod(env, glo_callback, id_onResponse, value_result);
+        jstring head_svr = (*env)->NewStringUTF(env, "svr");
+        jstring value_svr = (jstring) (*env)->CallObjectMethod(env, jsonObject, getString,head_svr);
+        const char *str_svr = (*env)->GetStringUTFChars(env, value_svr, NULL);
+        strncpy(&status.cmd.supernodes[0], str_svr, EDGE_CMD_SN_HOST_SIZE);
+        (*env)->DeleteLocalRef(env, head_svr);
+        (*env)->ReleaseStringChars(env, value_svr, str_svr);
+
+        jstring head_ip = (*env)->NewStringUTF(env, "ip");
+        jstring value_ip = (jstring) (*env)->CallObjectMethod(env, jsonObject, getString,head_ip);
+        const char *str_ip = (*env)->GetStringUTFChars(env, value_ip, NULL);
+        strncpy(&status.cmd.ip_addr, str_ip, EDGE_CMD_IPSTR_SIZE);
+        (*env)->DeleteLocalRef(env, head_ip);
+        (*env)->ReleaseStringChars(env, value_ip, str_ip);
 
 
-//    jclass cls_JSONObject = (*env)->FindClass(env, "org/json/JSONObject");
-//    jmethodID con_JSONObject = (*env)->GetMethodID(env, cls_JSONObject, "<init>",
-//                                                   "(Ljava/lang/String;)V");
-//    jmethodID getString = (*env)->GetMethodID(env, cls_JSONObject, "getString",
-//                                              "(Ljava/lang/String;)Ljava/lang/String;");
-//    jstring jsonData = (*env)->NewStringUTF(env, response_dec);
-//    jobject jsonObject = (*env)->NewObject(env, cls_JSONObject, con_JSONObject, jsonData);
-//    jstring result = (jstring) (*env)->CallObjectMethod(env, jsonObject, getString, "result");
-//    const char *result_str = (*env)->GetStringUTFChars(env, result, NULL);
-//    __android_log_print(ANDROID_LOG_ERROR, "edge_jni", "result_str = %s", result_str);
-//
-//
-//    (*env)->DeleteLocalRef(env, jsonData);
-//    (*env)->DeleteLocalRef(env, jsonObject);
-//    (*env)->ReleaseStringChars(env, result, result_str);
+        jstring head_mask = (*env)->NewStringUTF(env, "mask");
+        jstring value_mask = (jstring) (*env)->CallObjectMethod(env, jsonObject, getString,head_mask);
+        const char *str_mask = (*env)->GetStringUTFChars(env, value_mask, NULL);
+        strncpy(&status.cmd.ip_netmask, str_mask, EDGE_CMD_IPSTR_SIZE);
+        (*env)->DeleteLocalRef(env, head_mask);
+        (*env)->ReleaseStringChars(env, value_mask, str_mask);
 
+    }
 
+    (*env)->DeleteLocalRef(env, head_result);
+    (*env)->DeleteLocalRef(env, jsonData);
+    (*env)->DeleteLocalRef(env, jsonObject);
+    (*env)->ReleaseStringChars(env, value_result, result_str);
 
     free(key);
-    free(response_copy);
     free(response_dec);
+    free(respones_dec2);
     (*env)->ReleaseStringChars(env, str_response, response);
     (*env)->DeleteGlobalRef(env, glo_callback);
     (*env)->DeleteGlobalRef(env, glo_con);
@@ -573,8 +593,8 @@ int GetEdgeCmd2(JNIEnv *env, jclass obj, n2n_edge_cmd_t *cmd) {
 
     // ipAddr
     {
-        const char *ipAddr = "10.0.101.67";
-        strncpy(cmd->ip_addr, ipAddr, EDGE_CMD_IPSTR_SIZE);
+//        const char *ipAddr = "10.0.101.67";
+//        strncpy(cmd->ip_addr, ipAddr, EDGE_CMD_IPSTR_SIZE);
 #ifndef NDEBUG
         __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "ipAddr = %s", cmd->ip_addr);
 #endif /* #ifndef NDEBUG */
@@ -582,11 +602,11 @@ int GetEdgeCmd2(JNIEnv *env, jclass obj, n2n_edge_cmd_t *cmd) {
     // ipNetmask
     {
 
-        const char *ipNetmask = "255.0.0.0";
-        if (!ipNetmask || strlen(ipNetmask) == 0) {
-            return 1;
-        }
-        strncpy(cmd->ip_netmask, ipNetmask, EDGE_CMD_IPSTR_SIZE);
+//        const char *ipNetmask = "255.0.0.0";
+//        if (!ipNetmask || strlen(ipNetmask) == 0) {
+//            return 1;
+//        }
+//        strncpy(cmd->ip_netmask, ipNetmask, EDGE_CMD_IPSTR_SIZE);
 #ifndef NDEBUG
         __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "ipNetmask = %s", cmd->ip_netmask);
 #endif /* #ifndef NDEBUG */
@@ -594,8 +614,8 @@ int GetEdgeCmd2(JNIEnv *env, jclass obj, n2n_edge_cmd_t *cmd) {
     // supernodes
     {
 
-        const char *node = "203.195.140.102:5465";
-        strncpy(cmd->supernodes[0], node, EDGE_CMD_SN_HOST_SIZE);
+//        const char *node = "203.195.140.102:5465";
+//        strncpy(cmd->supernodes[0], node, EDGE_CMD_SN_HOST_SIZE);
 #ifndef NDEBUG
         __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "supernodes = %s",
                             cmd->supernodes[0]);

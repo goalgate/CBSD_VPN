@@ -91,11 +91,11 @@ extern int get_ethMac(char * mac, int len_limit);
 
 extern char* DES_Encrypt(const char *sourceData, int sourceSize, char *keyStr, int *resultSize);
 
-extern char* DES_Decrypt(char *sourceData, int sourceSize, char *keyStr, int* resultSize);
+extern char* DES_Decrypt(const char *sourceData, int sourceSize, char *keyStr, int* resultSize);
 
 //extern char* arrayToStr( char *buf, int buflen);
 //
-extern char* strToArray( char *buf, int buflen);
+//extern char* strToArray( char *buf, int buflen);
 
 #endif /* __ANDROID_NDK__ */
 
