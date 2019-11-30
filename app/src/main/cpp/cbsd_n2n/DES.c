@@ -372,7 +372,7 @@ char* DES_Encrypt(const char *sourceData, int sourceSize, char *keyStr, int *res
     }
 
 
-    if(p + 8 > sourceSize){
+    if(p!= sourceSize && p + 8 > sourceSize){
 //        PKCS7Padding（PKCS5Padding）填充方式：为.NET和JAVA的默认填充方式，对加密数据字节长度对8取余为r，如r大于0，则补8-r个字节，字节为8-r的值；如果r等于0，则补8个字节8。比如：
 //
 //        加密字符串为为AAA，则补位为AAA55555;加密字符串为BBBBBB，则补位为BBBBBB22；加密字符串为CCCCCCCC，则补位为CCCCCCCC88888888
@@ -398,8 +398,8 @@ char* DES_Decrypt(const char *sourceData, int sourceSize, char *keyStr, int* res
     char sourceBlock[8], destBlock[8], keyBlock[8];
     char bKey[64];
     char subKeys[16][48];
-    char *destData = (char*)malloc(sourceSize);
-    *resultSize = sourceSize;
+    char *destData = (char*)malloc(strlen(desDataHex));
+    *resultSize = strlen(desDataHex);
 
     memcpy(keyBlock,keyStr,8);
     Char8ToBit64(keyBlock,bKey);
@@ -444,23 +444,23 @@ char* DES_Decrypt(const char *sourceData, int sourceSize, char *keyStr, int* res
 
 char* arrayToStr( char *buf, int buflen)
 {
+
     char *destData = (char*)malloc(buflen*2);
 
     char strBuf[1024]= {0};
     char pbuf[2];
-    int i;
     for(int i=0; i<buflen; i++){
         sprintf(pbuf, "%02X", 0xFF &buf[i]);
-        strncat(strBuf, pbuf, 2);
+        strcat(strBuf, pbuf);
     }
-    strncpy(destData, strBuf, buflen * 2);
+    strcpy(destData, strBuf);
     return destData;
 }
 
 
 char* strToArray(const char *buf, int buflen)
 {
-    char *destData = (char*)malloc(buflen);
+    char *destData = (char*)malloc(buflen/2);
 
     unsigned char highByte, lowByte;
 

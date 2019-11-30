@@ -28,7 +28,13 @@ static jobject mParcelFileDescriptor = NULL;
 
 const char *fullkey = "zbvpn.login";
 
-const char jsonDataPreffix[10] = "jsonData=";
+const char jsonDataPreffix[] = "jsonData=";
+
+const char *str_svr;
+
+const char *str_ip;
+
+const char *str_mask;
 
 JNIEXPORT jboolean JNICALL Java_cn_cbsd_vpnx_service_VPNXService_vpnOpen(
         JNIEnv *env,
@@ -235,52 +241,60 @@ JNIEXPORT void Java_cn_cbsd_vpnx_service_VPNXService_getResult(JNIEnv *env, jobj
     const char *response = (*env)->GetStringUTFChars(env, str_response, NULL);
     int destSize;
     char *response_dec = DES_Decrypt(response, strlen(response), key, &destSize);
+    __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "response_dec = %s", response_dec);
+
     char *respones_dec2 = (char *) malloc(strlen(response) / 2);
     memcpy(respones_dec2, response_dec, strlen(response) / 2);
 
-    jclass cls_JSONObject = (*env)->FindClass(env, "org/json/JSONObject");
-    jmethodID con_JSONObject = (*env)->GetMethodID(env, cls_JSONObject, "<init>",
-                                                   "(Ljava/lang/String;)V");
-    jmethodID getString = (*env)->GetMethodID(env, cls_JSONObject, "getString",
-                                              "(Ljava/lang/String;)Ljava/lang/String;");
-    jstring jsonData = (*env)->NewStringUTF(env, respones_dec2);
-    jobject jsonObject = (*env)->NewObject(env, cls_JSONObject, con_JSONObject, jsonData);
-
-    jstring head_result = (*env)->NewStringUTF(env, "result");
-    jstring value_result = (jstring) (*env)->CallObjectMethod(env, jsonObject, getString,head_result);
-    const char *result_str = (*env)->GetStringUTFChars(env, value_result, NULL);
-    if(result_str != "true"){
-        (*env)->CallVoidMethod(env, glo_callback, id_onResponse, value_result);
-    }else{
-        (*env)->CallVoidMethod(env, glo_callback, id_onResponse, value_result);
-        jstring head_svr = (*env)->NewStringUTF(env, "svr");
-        jstring value_svr = (jstring) (*env)->CallObjectMethod(env, jsonObject, getString,head_svr);
-        const char *str_svr = (*env)->GetStringUTFChars(env, value_svr, NULL);
-        strncpy(&status.cmd.supernodes[0], str_svr, EDGE_CMD_SN_HOST_SIZE);
-        (*env)->DeleteLocalRef(env, head_svr);
-        (*env)->ReleaseStringChars(env, value_svr, str_svr);
-
-        jstring head_ip = (*env)->NewStringUTF(env, "ip");
-        jstring value_ip = (jstring) (*env)->CallObjectMethod(env, jsonObject, getString,head_ip);
-        const char *str_ip = (*env)->GetStringUTFChars(env, value_ip, NULL);
-        strncpy(&status.cmd.ip_addr, str_ip, EDGE_CMD_IPSTR_SIZE);
-        (*env)->DeleteLocalRef(env, head_ip);
-        (*env)->ReleaseStringChars(env, value_ip, str_ip);
-
-
-        jstring head_mask = (*env)->NewStringUTF(env, "mask");
-        jstring value_mask = (jstring) (*env)->CallObjectMethod(env, jsonObject, getString,head_mask);
-        const char *str_mask = (*env)->GetStringUTFChars(env, value_mask, NULL);
-        strncpy(&status.cmd.ip_netmask, str_mask, EDGE_CMD_IPSTR_SIZE);
-        (*env)->DeleteLocalRef(env, head_mask);
-        (*env)->ReleaseStringChars(env, value_mask, str_mask);
-
-    }
-
-    (*env)->DeleteLocalRef(env, head_result);
-    (*env)->DeleteLocalRef(env, jsonData);
-    (*env)->DeleteLocalRef(env, jsonObject);
-    (*env)->ReleaseStringChars(env, value_result, result_str);
+//    jclass cls_JSONObject = (*env)->FindClass(env, "org/json/JSONObject");
+//    jmethodID con_JSONObject = (*env)->GetMethodID(env, cls_JSONObject, "<init>",
+//                                                   "(Ljava/lang/String;)V");
+//    jmethodID getString = (*env)->GetMethodID(env, cls_JSONObject, "getString",
+//                                              "(Ljava/lang/String;)Ljava/lang/String;");
+//    jstring jsonData = (*env)->NewStringUTF(env, respones_dec2);
+//    jobject jsonObject = (*env)->NewObject(env, cls_JSONObject, con_JSONObject, jsonData);
+//
+//    jstring head_result = (*env)->NewStringUTF(env, "result");
+//    jstring value_result = (jstring) (*env)->CallObjectMethod(env, jsonObject, getString,
+//                                                              head_result);
+//    const char *result_str = (*env)->GetStringUTFChars(env, value_result, NULL);
+//    if (strcmp(result_str, "true") != 0) {
+//        (*env)->CallVoidMethod(env, glo_callback, id_onResponse, value_result);
+//    } else {
+//        jstring head_svr = (*env)->NewStringUTF(env, "svr");
+//        jstring value_svr = (jstring) (*env)->CallObjectMethod(env, jsonObject, getString,
+//                head_svr);
+//        str_svr = (*env)->GetStringUTFChars(env, value_svr, NULL);
+//        (*env)->DeleteLocalRef(env, head_svr);
+//        (*env)->DeleteLocalRef(env, value_svr);
+//
+////        (*env)->ReleaseStringChars(env, value_svr, str_svr);
+//
+//        jstring head_ip = (*env)->NewStringUTF(env, "ip");
+//        jstring value_ip = (jstring) (*env)->CallObjectMethod(env, jsonObject, getString, head_ip);
+//        str_ip = (*env)->GetStringUTFChars(env, value_ip, NULL);
+//        (*env)->DeleteLocalRef(env, head_ip);
+//        (*env)->DeleteLocalRef(env, value_ip);
+////        (*env)->ReleaseStringChars(env, value_ip, str_ip);
+//
+//        jstring head_mask = (*env)->NewStringUTF(env, "mask");
+//        jstring value_mask = (jstring) (*env)->CallObjectMethod(env, jsonObject, getString,
+//                                                                head_mask);
+//        str_mask = (*env)->GetStringUTFChars(env, value_mask, NULL);
+//        (*env)->DeleteLocalRef(env, value_mask);
+//        (*env)->DeleteLocalRef(env, head_mask);
+////        (*env)->ReleaseStringChars(env, value_mask, str_mask);
+////        __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "str_mask = %s", status.cmd.ip_netmask);
+//
+//
+//        (*env)->CallVoidMethod(env, glo_callback, id_onResponse, value_result);
+//
+//    }
+//
+//    (*env)->DeleteLocalRef(env, head_result);
+//    (*env)->DeleteLocalRef(env, jsonData);
+//    (*env)->DeleteLocalRef(env, jsonObject);
+//    (*env)->ReleaseStringChars(env, value_result, result_str);
 
     free(key);
     free(response_dec);
@@ -594,7 +608,7 @@ int GetEdgeCmd2(JNIEnv *env, jclass obj, n2n_edge_cmd_t *cmd) {
     // ipAddr
     {
 //        const char *ipAddr = "10.0.101.67";
-//        strncpy(cmd->ip_addr, ipAddr, EDGE_CMD_IPSTR_SIZE);
+        strncpy(cmd->ip_addr, str_ip, EDGE_CMD_IPSTR_SIZE);
 #ifndef NDEBUG
         __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "ipAddr = %s", cmd->ip_addr);
 #endif /* #ifndef NDEBUG */
@@ -603,10 +617,10 @@ int GetEdgeCmd2(JNIEnv *env, jclass obj, n2n_edge_cmd_t *cmd) {
     {
 
 //        const char *ipNetmask = "255.0.0.0";
-//        if (!ipNetmask || strlen(ipNetmask) == 0) {
-//            return 1;
-//        }
-//        strncpy(cmd->ip_netmask, ipNetmask, EDGE_CMD_IPSTR_SIZE);
+        if (!str_mask || strlen(str_mask) == 0) {
+            return 1;
+        }
+        strncpy(cmd->ip_netmask, str_mask, EDGE_CMD_IPSTR_SIZE);
 #ifndef NDEBUG
         __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "ipNetmask = %s", cmd->ip_netmask);
 #endif /* #ifndef NDEBUG */
@@ -615,7 +629,7 @@ int GetEdgeCmd2(JNIEnv *env, jclass obj, n2n_edge_cmd_t *cmd) {
     {
 
 //        const char *node = "203.195.140.102:5465";
-//        strncpy(cmd->supernodes[0], node, EDGE_CMD_SN_HOST_SIZE);
+        strncpy(cmd->supernodes[0], str_svr, EDGE_CMD_SN_HOST_SIZE);
 #ifndef NDEBUG
         __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "supernodes = %s",
                             cmd->supernodes[0]);
