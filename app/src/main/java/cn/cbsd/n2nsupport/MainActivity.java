@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.net.VpnService;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
@@ -15,13 +14,9 @@ import org.greenrobot.eventbus.ThreadMode;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import cn.cbsd.vpnx.Event.ConnectEvent;
 import cn.cbsd.vpnx.Event.DisconnectEvent;
 import cn.cbsd.vpnx.Tool.ServerConnectTool;
-import cn.cbsd.vpnx.Tool.VPNLoginKey;
 import cn.cbsd.vpnx.model.VPNStatus;
 import cn.cbsd.vpnx.service.VPNXService;
 
@@ -64,7 +59,6 @@ public class MainActivity extends AppCompatActivity {
                     VPNX_login(UrlandSuffix, jsonData.toString(), new ServerConnectTool.Callback() {
                         @Override
                         public void onResponse(String response) {
-                            Log.e("sds", response);
                             if (response == null) {
                                 Toast.makeText(MainActivity.this, "没有数据返回", Toast.LENGTH_SHORT).show();
                             } else if (response.equals("true")) {
@@ -74,6 +68,8 @@ public class MainActivity extends AppCompatActivity {
                                 } else {
                                     onActivityResult(REQUECT_CODE_VPN, RESULT_OK, null);
                                 }
+                            }else{
+                                Toast.makeText(MainActivity.this, response, Toast.LENGTH_SHORT).show();
                             }
                         }
                     });

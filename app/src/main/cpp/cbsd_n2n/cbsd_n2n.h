@@ -5,6 +5,7 @@
 #ifndef _EDGE_ANDROID_H_
 #define _EDGE_ANDROID_H_
 
+#define NDEBUG
 #ifdef __ANDROID_NDK__
 
 #include <jni.h>

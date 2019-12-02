@@ -2,13 +2,7 @@ package cn.cbsd.vpnx.service;
 
 import android.content.Intent;
 import android.net.VpnService;
-import android.os.Bundle;
-import android.os.ParcelFileDescriptor;
-import android.util.Log;
-import android.widget.Toast;
 import org.greenrobot.eventbus.EventBus;
-
-import cn.cbsd.n2nsupport.MainActivity;
 import cn.cbsd.vpnx.Event.DisconnectEvent;
 import cn.cbsd.vpnx.Event.ErrorEvent;
 import cn.cbsd.vpnx.Event.ConnectEvent;
