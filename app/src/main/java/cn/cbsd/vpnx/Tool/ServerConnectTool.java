@@ -75,8 +75,11 @@ public class ServerConnectTool {
     }
 
     public interface Callback {
+
         void onResponse(String response);
+
         void onResponse(JSONObject jsonObject);
+
     }
 
 
