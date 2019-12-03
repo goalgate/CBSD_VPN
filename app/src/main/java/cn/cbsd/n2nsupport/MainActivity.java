@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.net.VpnService;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
@@ -70,6 +71,16 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             }else{
                                 Toast.makeText(MainActivity.this, response, Toast.LENGTH_SHORT).show();
+                            }
+                        }
+
+                        @Override
+                        public void onResponse(JSONObject jsonObject) {
+                            try {
+                                Log.e("username", jsonObject.getString("username"));
+                                Log.e("password", jsonObject.getString("password"));
+                            }catch (JSONException e){
+                                Log.e("JSONException",e.toString());
                             }
                         }
                     });

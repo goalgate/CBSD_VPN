@@ -2,6 +2,8 @@ package cn.cbsd.vpnx.Tool;
 
 import android.os.Handler;
 
+import org.json.JSONObject;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -9,6 +11,7 @@ import java.net.URL;
 import java.util.UUID;
 
 import cn.cbsd.vpnx.service.VPNXService;
+
 
 public class ServerConnectTool {
 
@@ -73,6 +76,7 @@ public class ServerConnectTool {
 
     public interface Callback {
         void onResponse(String response);
+        void onResponse(JSONObject jsonObject);
     }
 
 
