@@ -22,6 +22,10 @@ static void ResetEdgeStatus(JNIEnv *env, uint8_t cleanup);
 
 static void InitEdgeStatus(void);
 
+jint getIpAddrPrefixLength(JNIEnv *env, jstring netmask);
+
+jstring getRoute(JNIEnv *env, jstring ipAddr, int prefixLength);
+
 static jobject mVpnService = NULL;
 
 static jobject mParcelFileDescriptor = NULL;
@@ -129,6 +133,7 @@ JNIEXPORT void JNICALL Java_cn_cbsd_vpnx_service_VPNXService_vpnClose(
         (*env)->ExceptionClear(env);        // 清除引发的异常，在Java层不会打印异常的堆栈信息
         (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/Exception"), "JNI抛出的异常！");
     }
+    (*env)->DeleteLocalRef(env, cls_ParcelFileDescriptor);
     (*env)->DeleteGlobalRef(env, mParcelFileDescriptor);
 
 }
@@ -216,6 +221,7 @@ Java_cn_cbsd_vpnx_service_VPNXService_VPNX_1login(JNIEnv *env, jobject this, jst
     (*env)->DeleteLocalRef(env, jsonData);
     (*env)->DeleteLocalRef(env, js_uploadJson);
     (*env)->DeleteLocalRef(env, server);
+    (*env)->DeleteLocalRef(env, cls_ServerConnectTool);
 
 
 }
@@ -245,7 +251,7 @@ JNIEXPORT void Java_cn_cbsd_vpnx_service_VPNXService_getResult(JNIEnv *env, jobj
     char *response_dec = DES_Decrypt(response, strlen(response), key, &destSize);
     jclass cls_JSONObject = (*env)->FindClass(env, "org/json/JSONObject");
     jmethodID con_JSONObjectWithString = (*env)->GetMethodID(env, cls_JSONObject, "<init>",
-                                                   "(Ljava/lang/String;)V");
+                                                             "(Ljava/lang/String;)V");
     jmethodID getString = (*env)->GetMethodID(env, cls_JSONObject, "getString",
                                               "(Ljava/lang/String;)Ljava/lang/String;");
     __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "response_dec = %s", response_dec);
@@ -279,7 +285,6 @@ JNIEXPORT void Java_cn_cbsd_vpnx_service_VPNXService_getResult(JNIEnv *env, jobj
         (*env)->DeleteLocalRef(env, value_mask);
         (*env)->DeleteLocalRef(env, head_mask);
 
-
         jstring head_username = (*env)->NewStringUTF(env, "username");
         jstring value_username = (jstring) (*env)->CallObjectMethod(env, jsonObject, getString,
                                                                     head_username);
@@ -287,7 +292,7 @@ JNIEXPORT void Java_cn_cbsd_vpnx_service_VPNXService_getResult(JNIEnv *env, jobj
         jstring value_password = (jstring) (*env)->CallObjectMethod(env, jsonObject, getString,
                                                                     head_password);
         jmethodID con_JSONObject = (*env)->GetMethodID(env, cls_JSONObject, "<init>",
-                                                                 "()V");
+                                                       "()V");
         jmethodID id_put = (*env)->GetMethodID(env, cls_JSONObject, "put",
                                                "(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;");
         jobject jsonBack = (*env)->NewObject(env, cls_JSONObject, con_JSONObject);
@@ -300,6 +305,8 @@ JNIEXPORT void Java_cn_cbsd_vpnx_service_VPNXService_getResult(JNIEnv *env, jobj
         (*env)->DeleteLocalRef(env, head_password);
         (*env)->DeleteLocalRef(env, value_password);
         (*env)->DeleteLocalRef(env, jsonBack);
+
+
         if ((*env)->ExceptionCheck(env)) {  // 检查JNI调用是否有引发异常
             (*env)->ExceptionDescribe(env);
             (*env)->ExceptionClear(env);        // 清除引发的异常，在Java层不会打印异常的堆栈信息
@@ -311,6 +318,9 @@ JNIEXPORT void Java_cn_cbsd_vpnx_service_VPNXService_getResult(JNIEnv *env, jobj
     (*env)->DeleteLocalRef(env, jsonData);
     (*env)->DeleteLocalRef(env, jsonObject);
     (*env)->ReleaseStringChars(env, value_result, result_str);
+    (*env)->DeleteLocalRef(env, cls_callback);
+    (*env)->DeleteLocalRef(env, cls_JSONObject);
+    (*env)->DeleteLocalRef(env, cls_ServerConnectTool);
 
     free(key);
     free(response_dec);
@@ -723,13 +733,15 @@ int GetEdgeCmd2(JNIEnv *env, jclass obj, n2n_edge_cmd_t *cmd) {
                                                    "(Ljava/lang/String;)Landroid/net/VpnService$Builder;");
         jmethodID establish = (*env)->GetMethodID(env, cls_Builder, "establish",
                                                   "()Landroid/os/ParcelFileDescriptor;");
-        jclass cls_NetAddressTool = (*env)->FindClass(env, "cn/cbsd/vpnx/Tool/NetAddressTool");
-        jmethodID id_getIpAddrPrefixLength = (*env)->GetStaticMethodID(env, cls_NetAddressTool,
-                                                                       "getIpAddrPrefixLength",
-                                                                       "(Ljava/lang/String;)I");
 
-        jmethodID id_getRoute = (*env)->GetStaticMethodID(env, cls_NetAddressTool, "getRoute",
-                                                          "(Ljava/lang/String;I)Ljava/lang/String;");
+//        jclass cls_NetAddressTool = (*env)->FindClass(env, "cn/cbsd/vpnx/Tool/NetAddressTool");
+//        jmethodID id_getIpAddrPrefixLength = (*env)->GetStaticMethodID(env, cls_NetAddressTool,
+//                                                                       "getIpAddrPrefixLength",
+//                                                                       "(Ljava/lang/String;)I");
+//
+//        jmethodID id_getRoute = (*env)->GetStaticMethodID(env, cls_NetAddressTool, "getRoute",
+//                                                          "(Ljava/lang/String;I)Ljava/lang/String;");
+
 
         jclass cls_ParcelFileDescriptor = (*env)->FindClass(env, "android/os/ParcelFileDescriptor");
         jmethodID detachFd = (*env)->GetMethodID(env, cls_ParcelFileDescriptor, "detachFd", "()I");
@@ -737,10 +749,25 @@ int GetEdgeCmd2(JNIEnv *env, jclass obj, n2n_edge_cmd_t *cmd) {
         jstring netmask = (*env)->NewStringUTF(env, &status.cmd.ip_netmask);
         jstring ipaddr = (*env)->NewStringUTF(env, &status.cmd.ip_addr);
         jstring sessionName = (*env)->NewStringUTF(env, "vpn_v1");
-        jint prefixLength = (*env)->CallStaticIntMethod(env, cls_NetAddressTool,
-                                                        id_getIpAddrPrefixLength, netmask);
-        jstring Route = (jstring) (*env)->CallStaticObjectMethod(env, cls_NetAddressTool,
-                                                                 id_getRoute, ipaddr, prefixLength);
+
+//        jint prefixLength = (*env)->CallStaticIntMethod(env, cls_NetAddressTool,
+//                                                        id_getIpAddrPrefixLength, netmask);
+//        __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "getIpAddrPrefixLength1 = %d",
+//                            prefixLength);
+//
+//
+//        jstring Route = (jstring) (*env)->CallStaticObjectMethod(env, cls_NetAddressTool,
+//                                                                 id_getRoute, ipaddr, prefixLength);
+//        const char *sd = (*env)->GetStringUTFChars(env, Route, NULL);
+//        __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "sd1 = %s",
+//                            sd);
+//        const char *sd2 = (*env)->GetStringUTFChars(env, Route, NULL);
+
+        jint prefixLength = getIpAddrPrefixLength(env, netmask);
+
+        jstring Route = getRoute(env, ipaddr, prefixLength);
+
+
         (*env)->CallObjectMethod(env, mBuilder, setMtu, 1400);
         (*env)->CallObjectMethod(env, mBuilder, addAddress, ipaddr, prefixLength);
         (*env)->CallObjectMethod(env, mBuilder, addRoute, Route, prefixLength);
@@ -759,6 +786,8 @@ int GetEdgeCmd2(JNIEnv *env, jclass obj, n2n_edge_cmd_t *cmd) {
         __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "vpnFd = %d", cmd->vpn_fd);
 #endif /* #ifndef NDEBUG */
 //
+        (*env)->DeleteLocalRef(env, cls_Builder);
+        (*env)->DeleteLocalRef(env, cls_ParcelFileDescriptor);
         (*env)->DeleteLocalRef(env, sessionName);
         (*env)->DeleteLocalRef(env, mBuilder);
         (*env)->DeleteLocalRef(env, netmask);
@@ -960,4 +989,101 @@ void report_edge_status(void) {
 
     (*env)->DeleteLocalRef(env, jRunningStatus);
     (*env)->DeleteLocalRef(env, jStatus);
+}
+
+
+jint getIpAddrPrefixLength(JNIEnv *env, jstring netmask) {
+    jclass cls_InetAddress = (*env)->FindClass(env, "java/net/InetAddress");
+    jmethodID getByName = (*env)->GetStaticMethodID(env, cls_InetAddress, "getByName",
+                                                    "(Ljava/lang/String;)Ljava/net/InetAddress;");
+    jmethodID getAddress = (*env)->GetMethodID(env, cls_InetAddress, "getAddress", "()[B");
+    jobject mInetAddress = (*env)->CallStaticObjectMethod(env, cls_InetAddress, getByName, netmask);
+    jbyteArray byteAddr = (jbyteArray) (*env)->CallObjectMethod(env, mInetAddress, getAddress);
+
+    int prefixLength = 0;
+
+    int byteAddrLen = (*env)->GetArrayLength(env, byteAddr);
+    jbyte *jbarray = (*env)->GetByteArrayElements(env, byteAddr, NULL);
+
+    for (int i = 0; i < byteAddrLen; i++) {
+        for (int j = 0; j < 8; j++) {
+            if ((jbarray[i] << j & 0xFF) != 0) {
+                prefixLength++;
+            } else {
+                (*env)->DeleteLocalRef(env, mInetAddress);
+                (*env)->ReleaseByteArrayElements(env, byteAddr, jbarray, 0);
+                (*env)->DeleteLocalRef(env, byteAddr);
+                (*env)->DeleteLocalRef(env, cls_InetAddress);
+                __android_log_print(ANDROID_LOG_DEBUG, "edge_jni",
+                                    "getIpAddrPrefixLength1 = %d", prefixLength);
+                return prefixLength;
+            }
+        }
+    }
+    (*env)->DeleteLocalRef(env, mInetAddress);
+    (*env)->DeleteLocalRef(env, byteAddr);
+    (*env)->DeleteLocalRef(env, jbarray);
+    (*env)->DeleteLocalRef(env, cls_InetAddress);
+
+    if ((*env)->ExceptionCheck(env)) {  // 检查JNI调用是否有引发异常
+        (*env)->ExceptionDescribe(env);
+        (*env)->ExceptionClear(env);        // 清除引发的异常，在Java层不会打印异常的堆栈信息
+        (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/Exception"), "JNI抛出的异常！");
+        return -1;
+    }
+    return prefixLength;
+}
+
+
+jstring getRoute(JNIEnv *env, jstring ipAddr, int prefixLength) {
+    jbyte arr[] = {0x00, 0x80, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC, 0xFE, 0xFF};
+    if (prefixLength > 32 || prefixLength < 0) {
+        return NULL;
+    }
+    jclass cls_InetAddress = (*env)->FindClass(env, "java/net/InetAddress");
+    jmethodID getByName = (*env)->GetStaticMethodID(env, cls_InetAddress, "getByName",
+                                                    "(Ljava/lang/String;)Ljava/net/InetAddress;");
+    jmethodID getAddress = (*env)->GetMethodID(env, cls_InetAddress, "getAddress", "()[B");
+
+    jobject mInetAddress = (*env)->CallStaticObjectMethod(env, cls_InetAddress, getByName, ipAddr);
+
+    jbyteArray byteAddr = (jbyteArray) (*env)->CallObjectMethod(env, mInetAddress, getAddress);
+    int byteAddrLen = (*env)->GetArrayLength(env, byteAddr);
+    jbyte *jbarray = (*env)->GetByteArrayElements(env, byteAddr, JNI_FALSE);
+    int idx = 0;
+    while (prefixLength >= 8) {
+        idx++;
+        prefixLength -= 8;
+    }
+    if (idx < byteAddrLen) {
+        jbarray[idx++] &= arr[prefixLength];
+    }
+    for (; idx < byteAddrLen; idx++) {
+        jbarray[idx] = (jbyte) 0x00;
+    }
+
+    jbyteArray jbyteArrayBack = (*env)->NewByteArray(env, byteAddrLen);
+    (*env)->SetByteArrayRegion(env, jbyteArrayBack, 0, byteAddrLen, jbarray);
+
+    jmethodID getByAddress = (*env)->GetStaticMethodID(env, cls_InetAddress, "getByAddress",
+                                                       "([B)Ljava/net/InetAddress;");
+    jmethodID getHostAddress = (*env)->GetMethodID(env, cls_InetAddress, "getHostAddress",
+                                                   "()Ljava/lang/String;");
+
+    jobject InetAddressBack = (*env)->CallStaticObjectMethod(env, cls_InetAddress, getByAddress,
+                                                             jbyteArrayBack);
+    jstring HostAddress = (jstring) (*env)->CallObjectMethod(env, InetAddressBack, getHostAddress);
+
+    (*env)->DeleteLocalRef(env, cls_InetAddress);
+    (*env)->DeleteLocalRef(env, mInetAddress);
+    (*env)->DeleteLocalRef(env, jbyteArrayBack);
+    (*env)->ReleaseByteArrayElements(env, byteAddr, jbarray, 0);
+    (*env)->DeleteLocalRef(env, byteAddr);
+    (*env)->DeleteLocalRef(env, InetAddressBack);
+    if ((*env)->ExceptionCheck(env)) {  // 检查JNI调用是否有引发异常
+        (*env)->ExceptionDescribe(env);
+        (*env)->ExceptionClear(env);        // 清除引发的异常，在Java层不会打印异常的堆栈信息
+        (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/Exception"), "JNI抛出的异常！");
+    }
+    return HostAddress;
 }
