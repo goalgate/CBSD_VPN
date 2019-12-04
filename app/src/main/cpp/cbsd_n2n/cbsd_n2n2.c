@@ -40,6 +40,11 @@ const char *str_ip;
 
 const char *str_mask;
 
+const char *str_username;
+
+const char *str_password;
+
+
 JNIEXPORT jboolean JNICALL Java_cn_cbsd_vpnx_service_VPNXService_vpnOpen(
         JNIEnv *env,
         jobject this) {
@@ -233,8 +238,6 @@ JNIEXPORT void Java_cn_cbsd_vpnx_service_VPNXService_getResult(JNIEnv *env, jobj
     jclass cls_callback = (*env)->GetObjectClass(env, glo_callback);
     jmethodID id_onResponse = (*env)->GetMethodID(env, cls_callback, "onResponse",
                                                   "(Ljava/lang/String;)V");
-    jmethodID id_onResponseJSON = (*env)->GetMethodID(env, cls_callback, "onResponse",
-                                                      "(Lorg/json/JSONObject;)V");
     jstring str_response = (jstring) (*env)->GetObjectField(env, glo_con, fid_response);
     if (str_response == NULL) {
         (*env)->CallVoidMethod(env, glo_callback, id_onResponse, str_response);
@@ -249,22 +252,23 @@ JNIEXPORT void Java_cn_cbsd_vpnx_service_VPNXService_getResult(JNIEnv *env, jobj
     const char *response = (*env)->GetStringUTFChars(env, str_response, NULL);
     int destSize;
     char *response_dec = DES_Decrypt(response, strlen(response), key, &destSize);
+//    __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "response_dec = %s", response_dec);
     if ((*env)->ExceptionCheck(env)) {  // 检查JNI调用是否有引发异常
-        (*env)->CallVoidMethod(env, glo_callback, id_onResponse, (*env)->NewStringUTF(env,"DES解析错误"));
+        (*env)->CallVoidMethod(env, glo_callback, id_onResponse,
+                               (*env)->NewStringUTF(env, "DES解析错误"));
         (*env)->ExceptionDescribe(env);
         (*env)->ExceptionClear(env);        // 清除引发的异常，在Java层不会打印异常的堆栈信息
         (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/Exception"), "DES解析异常！");
         (*env)->DeleteLocalRef(env, str_response);
         (*env)->DeleteGlobalRef(env, glo_callback);
         (*env)->DeleteGlobalRef(env, glo_con);
-        return ;
+        return;
     }
     jclass cls_JSONObject = (*env)->FindClass(env, "org/json/JSONObject");
     jmethodID con_JSONObjectWithString = (*env)->GetMethodID(env, cls_JSONObject, "<init>",
                                                              "(Ljava/lang/String;)V");
     jmethodID getString = (*env)->GetMethodID(env, cls_JSONObject, "getString",
                                               "(Ljava/lang/String;)Ljava/lang/String;");
-//    __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "response_dec = %s", response_dec);
     jstring jsonData = (*env)->NewStringUTF(env, response_dec);
     jobject jsonObject = (*env)->NewObject(env, cls_JSONObject, con_JSONObjectWithString, jsonData);
 
@@ -295,26 +299,22 @@ JNIEXPORT void Java_cn_cbsd_vpnx_service_VPNXService_getResult(JNIEnv *env, jobj
         (*env)->DeleteLocalRef(env, value_mask);
         (*env)->DeleteLocalRef(env, head_mask);
 
+
         jstring head_username = (*env)->NewStringUTF(env, "username");
         jstring value_username = (jstring) (*env)->CallObjectMethod(env, jsonObject, getString,
-                                                                    head_username);
+                                                                head_username);
+        str_username = (*env)->GetStringUTFChars(env, value_username, NULL);
+        (*env)->DeleteLocalRef(env, value_username);
+        (*env)->DeleteLocalRef(env, head_username);
+
         jstring head_password = (*env)->NewStringUTF(env, "password");
         jstring value_password = (jstring) (*env)->CallObjectMethod(env, jsonObject, getString,
                                                                     head_password);
-        jmethodID con_JSONObject = (*env)->GetMethodID(env, cls_JSONObject, "<init>",
-                                                       "()V");
-        jmethodID id_put = (*env)->GetMethodID(env, cls_JSONObject, "put",
-                                               "(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;");
-        jobject jsonBack = (*env)->NewObject(env, cls_JSONObject, con_JSONObject);
-        jsonBack = (*env)->CallObjectMethod(env, jsonBack, id_put, head_username, value_username);
-        jsonBack = (*env)->CallObjectMethod(env, jsonBack, id_put, head_password, value_password);
-        (*env)->CallVoidMethod(env, glo_callback, id_onResponse, value_result);
-        (*env)->CallVoidMethod(env, glo_callback, id_onResponseJSON, jsonBack);
-        (*env)->DeleteLocalRef(env, head_username);
-        (*env)->DeleteLocalRef(env, value_username);
-        (*env)->DeleteLocalRef(env, head_password);
+        str_password = (*env)->GetStringUTFChars(env, value_password, NULL);
         (*env)->DeleteLocalRef(env, value_password);
-        (*env)->DeleteLocalRef(env, jsonBack);
+        (*env)->DeleteLocalRef(env, head_password);
+        (*env)->CallVoidMethod(env, glo_callback, id_onResponse, value_result);
+
         if ((*env)->ExceptionCheck(env)) {  // 检查JNI调用是否有引发异常
             (*env)->ExceptionDescribe(env);
             (*env)->ExceptionClear(env);        // 清除引发的异常，在Java层不会打印异常的堆栈信息
@@ -640,7 +640,7 @@ int GetEdgeCmd2(JNIEnv *env, jclass obj, n2n_edge_cmd_t *cmd) {
 
     // ipAddr
     {
-//        const char *ipAddr = "10.0.101.67";
+//        const char *ipAddr = "10.0.101.68";
         strncpy(cmd->ip_addr, str_ip, EDGE_CMD_IPSTR_SIZE);
 #ifndef NDEBUG
         __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "ipAddr = %s", cmd->ip_addr);
@@ -672,15 +672,15 @@ int GetEdgeCmd2(JNIEnv *env, jclass obj, n2n_edge_cmd_t *cmd) {
     // community
     {
 
-        const char *community = "sxsp";
-        strncpy(cmd->community, community, EDGE_CMD_COMMUNITY_SIZE);
+//        const char *community = "sxsp";
+        strncpy(cmd->community, str_username, EDGE_CMD_COMMUNITY_SIZE);
 #ifndef NDEBUG
         __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "community = %s", cmd->community);
 #endif /* #ifndef NDEBUG */
     }
     // encKey
     {
-        const char *encKey = "sxsp@cbsd";
+        const char *encKey = str_password;
         if (encKey && strlen(encKey) != 0) {
             cmd->enc_key = strdup(encKey);
         }

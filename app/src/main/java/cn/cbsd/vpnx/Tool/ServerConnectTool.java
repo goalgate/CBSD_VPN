@@ -15,10 +15,13 @@ import cn.cbsd.vpnx.service.VPNXService;
 
 public class ServerConnectTool {
 
+    //JNI调用，不可修改
     private String UrlandSuffix;
 
+    //JNI调用，不可修改
     private String jsonData;
 
+    //JNI调用，不可修改
     private String response;
 
     private static int TIME_OUT = 20 * 1000;   //超时时间
@@ -75,11 +78,7 @@ public class ServerConnectTool {
     }
 
     public interface Callback {
-
         void onResponse(String response);
-
-        void onResponse(JSONObject jsonObject);
-
     }
 
 

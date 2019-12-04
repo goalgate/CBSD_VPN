@@ -73,16 +73,6 @@ public class MainActivity extends AppCompatActivity {
                                 Toast.makeText(MainActivity.this, response, Toast.LENGTH_SHORT).show();
                             }
                         }
-
-                        @Override
-                        public void onResponse(JSONObject jsonObject) {
-                            try {
-                                Log.e("username", jsonObject.getString("username"));
-                                Log.e("password", jsonObject.getString("password"));
-                            }catch (JSONException e){
-                                Log.e("JSONException",e.toString());
-                            }
-                        }
                     });
 
 
