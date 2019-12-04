@@ -249,12 +249,22 @@ JNIEXPORT void Java_cn_cbsd_vpnx_service_VPNXService_getResult(JNIEnv *env, jobj
     const char *response = (*env)->GetStringUTFChars(env, str_response, NULL);
     int destSize;
     char *response_dec = DES_Decrypt(response, strlen(response), key, &destSize);
+    if ((*env)->ExceptionCheck(env)) {  // 检查JNI调用是否有引发异常
+        (*env)->CallVoidMethod(env, glo_callback, id_onResponse, (*env)->NewStringUTF(env,"DES解析错误"));
+        (*env)->ExceptionDescribe(env);
+        (*env)->ExceptionClear(env);        // 清除引发的异常，在Java层不会打印异常的堆栈信息
+        (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/Exception"), "DES解析异常！");
+        (*env)->DeleteLocalRef(env, str_response);
+        (*env)->DeleteGlobalRef(env, glo_callback);
+        (*env)->DeleteGlobalRef(env, glo_con);
+        return ;
+    }
     jclass cls_JSONObject = (*env)->FindClass(env, "org/json/JSONObject");
     jmethodID con_JSONObjectWithString = (*env)->GetMethodID(env, cls_JSONObject, "<init>",
                                                              "(Ljava/lang/String;)V");
     jmethodID getString = (*env)->GetMethodID(env, cls_JSONObject, "getString",
                                               "(Ljava/lang/String;)Ljava/lang/String;");
-    __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "response_dec = %s", response_dec);
+//    __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "response_dec = %s", response_dec);
     jstring jsonData = (*env)->NewStringUTF(env, response_dec);
     jobject jsonObject = (*env)->NewObject(env, cls_JSONObject, con_JSONObjectWithString, jsonData);
 
@@ -305,8 +315,6 @@ JNIEXPORT void Java_cn_cbsd_vpnx_service_VPNXService_getResult(JNIEnv *env, jobj
         (*env)->DeleteLocalRef(env, head_password);
         (*env)->DeleteLocalRef(env, value_password);
         (*env)->DeleteLocalRef(env, jsonBack);
-
-
         if ((*env)->ExceptionCheck(env)) {  // 检查JNI调用是否有引发异常
             (*env)->ExceptionDescribe(env);
             (*env)->ExceptionClear(env);        // 清除引发的异常，在Java层不会打印异常的堆栈信息
@@ -752,7 +760,7 @@ int GetEdgeCmd2(JNIEnv *env, jclass obj, n2n_edge_cmd_t *cmd) {
 
 //        jint prefixLength = (*env)->CallStaticIntMethod(env, cls_NetAddressTool,
 //                                                        id_getIpAddrPrefixLength, netmask);
-//        __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "getIpAddrPrefixLength1 = %d",
+//        __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", ". = %d",
 //                            prefixLength);
 //
 //
@@ -793,9 +801,7 @@ int GetEdgeCmd2(JNIEnv *env, jclass obj, n2n_edge_cmd_t *cmd) {
         (*env)->DeleteLocalRef(env, netmask);
         (*env)->DeleteLocalRef(env, ipaddr);
         (*env)->DeleteLocalRef(env, Route);
-
     }
-
     return 0;
 }
 
@@ -1014,8 +1020,6 @@ jint getIpAddrPrefixLength(JNIEnv *env, jstring netmask) {
                 (*env)->ReleaseByteArrayElements(env, byteAddr, jbarray, 0);
                 (*env)->DeleteLocalRef(env, byteAddr);
                 (*env)->DeleteLocalRef(env, cls_InetAddress);
-                __android_log_print(ANDROID_LOG_DEBUG, "edge_jni",
-                                    "getIpAddrPrefixLength1 = %d", prefixLength);
                 return prefixLength;
             }
         }

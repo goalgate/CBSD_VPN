@@ -73,7 +73,7 @@ public class VPNXService extends VpnService {
 
     public native boolean vpnOpen();
 
-    public native boolean vpnClose();
+    public native void vpnClose();
 
     public static native VPNStatus.RunningStatus getVPNStatus();
 
