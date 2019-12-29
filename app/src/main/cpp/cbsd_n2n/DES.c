@@ -4,15 +4,15 @@
 
 #include <ctype.h>
 #include <android/log.h>
+#include <strings.h>
 #include "DES.h"
 
 int ByteToBit(ElemType ch, ElemType bit[8]) {
     int cnt;
     for (cnt = 0; cnt < 8; cnt++) {
-//        *(bit+cnt) = (ch>>cnt)&1;
         *(bit + cnt) = ((ch << cnt) & 0x80) >> 7;
-
     }
+
     return 0;
 }
 
@@ -352,7 +352,7 @@ char *DES_Encrypt(const char *sourceData, int sourceSize, char *keyStr, int *res
     int destSize = sourceSize;
     if (destSize % 8 != 0)
         destSize += (8 - (destSize % 8));
-    destData = (char *) malloc(destSize);
+    destData = (char *) malloc(destSize * sizeof(char));
     *resultSize = destSize;
 
     int count;
@@ -381,7 +381,6 @@ char *DES_Encrypt(const char *sourceData, int sourceSize, char *keyStr, int *res
         DES_EncryptBlock(sourceBlock, subKeys, destBlock);
         memcpy(destData + p, destBlock, sizeof(destBlock));
     }
-
     char *desDataHex = arrayToStr(destData, destSize);
     free(destData);
     return desDataHex;
@@ -389,24 +388,23 @@ char *DES_Encrypt(const char *sourceData, int sourceSize, char *keyStr, int *res
 
 char *DES_Decrypt(const char *sourceData, int sourceSize, char *keyStr, int *resultSize) {
 
-    int realSourceSize = sourceSize/2;
+    *resultSize = sourceSize / 2;
 
-    char *desDataHex = strToArray(sourceData, sourceSize);
+    char *desDataHex = strToArray(sourceData, *resultSize);
 
     int count, times = 0;
     long fileLen;
     char sourceBlock[8], destBlock[8], keyBlock[8];
     char bKey[64];
     char subKeys[16][48];
-    char *destData = (char *) malloc(realSourceSize);
-    *resultSize = realSourceSize;
+    char *destData = (char *) malloc(*resultSize * sizeof(char));
 
     memcpy(keyBlock, keyStr, 8);
     Char8ToBit64(keyBlock, bKey);
     DES_MakeSubKeys(bKey, subKeys);
 
     int p = 0;
-    while (p < realSourceSize) {
+    while (p < *resultSize) {
         memcpy(sourceBlock, desDataHex + p, 8);
         DES_DecryptBlock(sourceBlock, subKeys, destBlock);
         memcpy(destData + p, destBlock, 8);
@@ -414,21 +412,22 @@ char *DES_Decrypt(const char *sourceData, int sourceSize, char *keyStr, int *res
     }
     int nullCnt = destData[*resultSize - 1];
     *resultSize -= nullCnt;
-    char *resultData = (char *) malloc(*resultSize);
-    memcpy(resultData, destData, *resultSize);
-    free(destData);
-    destData = resultData;
+    *resultSize += 1;
+    char *result = (char *) malloc((*resultSize) * sizeof(char));
+    bzero(result, sizeof(result));
+    snprintf(result, *resultSize, "%s", destData);
     free(desDataHex);
-    return destData;
+    free(destData);
+    return result;
 }
 
 
 char *arrayToStr(char *buf, int buflen) {
 
-    char *destData = (char *) malloc(buflen * 2);
+    char *destData = (char *) malloc(buflen * sizeof(char) * 2);
 
     char strBuf[1024] = {0};
-    char pbuf[2];
+    char pbuf[4];
     for (int i = 0; i < buflen; i++) {
         sprintf(pbuf, "%02X", 0xFF & buf[i]);
         strcat(strBuf, pbuf);
@@ -439,13 +438,13 @@ char *arrayToStr(char *buf, int buflen) {
 
 
 char *strToArray(const char *buf, int buflen) {
-    char *destData = (char *) malloc(buflen);
-    char h1,h2;
-    char s1,s2;
+    char *destData = (char *) malloc(buflen * sizeof(char));
+    char h1, h2;
+    char s1, s2;
     int i;
-    for (i=0; i<buflen; i++){
-        h1 = buf[2*i];
-        h2 = buf[2*i+1];
+    for (i = 0; i < buflen; i++) {
+        h1 = buf[2 * i];
+        h2 = buf[2 * i + 1];
         s1 = toupper(h1) - 0x30;
         if (s1 > 9)
             s1 -= 7;
@@ -454,7 +453,7 @@ char *strToArray(const char *buf, int buflen) {
         if (s2 > 9)
             s2 -= 7;
 
-        destData[i] = s1*16 + s2;
+        destData[i] = s1 * 16 + s2;
     }
     return destData;
 }

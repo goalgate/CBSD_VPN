@@ -77,7 +77,7 @@ public class VPNXService extends VpnService {
 
     public static native VPNStatus.RunningStatus getVPNStatus();
 
-    public native static void VPNX_login(String server ,String jsonData, ServerConnectTool.Callback callback);
+    public native static void VPNX_login(String server ,String jsonData,String Mac, ServerConnectTool.Callback callback);
 
     public native static void getResult();
 

@@ -86,17 +86,9 @@ extern int start_edge_v2s(n2n_edge_status_t* status);
 extern int stop_edge_v2s(void);
 extern void report_edge_status(void);
 
-extern int get_WiFiMac(char * mac, int len_limit);
-extern int get_ethMac(char * mac, int len_limit);
-
-
 extern char* DES_Encrypt(const char *sourceData, int sourceSize, char *keyStr, int *resultSize);
 
 extern char* DES_Decrypt(const char *sourceData, int sourceSize, char *keyStr, int* resultSize);
-
-//extern char* arrayToStr( char *buf, int buflen);
-//
-//extern char* strToArray( char *buf, int buflen);
 
 #endif /* __ANDROID_NDK__ */
 

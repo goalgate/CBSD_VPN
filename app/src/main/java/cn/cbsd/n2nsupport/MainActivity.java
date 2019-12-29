@@ -17,6 +17,7 @@ import org.json.JSONObject;
 
 import cn.cbsd.vpnx.Event.ConnectEvent;
 import cn.cbsd.vpnx.Event.DisconnectEvent;
+import cn.cbsd.vpnx.Tool.GetMac;
 import cn.cbsd.vpnx.Tool.ServerConnectTool;
 import cn.cbsd.vpnx.model.VPNStatus;
 import cn.cbsd.vpnx.service.VPNXService;
@@ -37,7 +38,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         EventBus.getDefault().register(this);
-
         btn_openVPN = (Button) findViewById(R.id.btn_VPN);
         btn_getVPNStatus = (Button) findViewById(R.id.btn_VPNStatus);
         btn_openVPN.setOnClickListener(new View.OnClickListener() {
@@ -57,7 +57,7 @@ public class MainActivity extends AppCompatActivity {
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
-                    VPNX_login(UrlandSuffix, jsonData.toString(), new ServerConnectTool.Callback() {
+                    VPNX_login(UrlandSuffix, jsonData.toString(), GetMac.getMacAddress(), new ServerConnectTool.Callback() {
                         @Override
                         public void onResponse(String response) {
                             if (response == null) {

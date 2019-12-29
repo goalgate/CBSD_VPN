@@ -9,7 +9,6 @@ cmake_minimum_required(VERSION 3.4.1)
 set(N2N_VERSION 2.1.0)
 set(N2N_OSNAME ${CMAKE_SYSTEM})
 set(N2N_MODIFY_VERSION v2s_0.1.0)
-set(N2N_MODIFY_AUTHOR "switchwang(https://github.com/switch-st) zhangbz(https://github.com/zhangbz)")
 
 INCLUDE(TestBigEndian)
 TEST_BIG_ENDIAN(UIP_CONF_BYTE_ORDER)
@@ -35,7 +34,7 @@ include_directories(src/main/cpp src/main/cpp/slog src/main/cpp/tun2tap src/main
 
 
 add_library(cbsd_vpnx SHARED
-        src/main/cpp/cbsd_n2n/cbsd_n2n2.c
+        src/main/cpp/cbsd_n2n/cbsd_n2n3.c
         src/main/cpp/cbsd_n2n/getMAC.c
         src/main/cpp/cbsd_n2n/DES.c
         )
