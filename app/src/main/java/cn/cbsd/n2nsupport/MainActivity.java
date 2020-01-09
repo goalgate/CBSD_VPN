@@ -1,10 +1,12 @@
 package cn.cbsd.n2nsupport;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.net.VpnService;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
@@ -25,13 +27,13 @@ import cn.cbsd.vpnx.service.VPNXService;
 import static cn.cbsd.vpnx.service.VPNXService.VPNX_login;
 
 public class MainActivity extends AppCompatActivity {
+
     final static String UrlandSuffix = "http://124.172.232.89:8050/daServer/vpn_jkapp?";
-
     private static final int REQUECT_CODE_VPN = 1;
-
     Button btn_openVPN;
     Button btn_getVPNStatus;
     VPNStatus.RunningStatus status;
+    private ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,9 +59,15 @@ public class MainActivity extends AppCompatActivity {
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
+                    progressDialog = new ProgressDialog(MainActivity.this);
+                    progressDialog.setCanceledOnTouchOutside(false);
+                    progressDialog.getWindow().getAttributes().gravity = Gravity.CENTER;
+                    progressDialog.setMessage("数据上传中，请稍候");
+                    progressDialog.show();
                     VPNX_login(UrlandSuffix, jsonData.toString(), GetMac.getMacAddress(), new ServerConnectTool.Callback() {
                         @Override
                         public void onResponse(String response) {
+                            progressDialog.dismiss();
                             if (response == null) {
                                 Toast.makeText(MainActivity.this, "没有数据返回", Toast.LENGTH_SHORT).show();
                             } else if (response.equals("true")) {
@@ -74,11 +82,7 @@ public class MainActivity extends AppCompatActivity {
                             }
                         }
                     });
-
-
                 }
-
-
             }
         });
         btn_getVPNStatus.setOnClickListener(new View.OnClickListener() {
@@ -103,7 +107,6 @@ public class MainActivity extends AppCompatActivity {
                         break;
                     default:
                         break;
-
                 }
             }
         });

@@ -24,7 +24,7 @@ public class ServerConnectTool {
     //JNI调用，不可修改
     private String response;
 
-    private static int TIME_OUT = 20 * 1000;   //超时时间
+    private static int TIME_OUT = 10 * 1000;   //超时时间
     private static String CHARSET = "utf-8";
     private BufferedReader in = null;
     private static String BOUNDARY = UUID.randomUUID().toString();  //边界标识   随机生成

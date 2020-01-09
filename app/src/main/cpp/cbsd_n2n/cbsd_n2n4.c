@@ -204,6 +204,18 @@ JNIEXPORT void
 Java_cn_cbsd_vpnx_service_VPNXService_VPNX_1login(JNIEnv *env, jobject this, jstring server,
                                                   jstring jsonData, jstring str_mac,jobject callback) {
     mac = (*env)->GetStringUTFChars(env,str_mac,NULL);
+
+//    ElemType des[8];
+//    ByteToHex('c',des);
+//    char strBuf[50] = {0};
+//    char pbuf[4];
+//    for (int i = 0; i < 8; i++) {
+//        sprintf(pbuf, "%02X", 0xFF & des[i]);
+//        strcat(strBuf, pbuf);
+//    }
+//
+//    __android_log_print(ANDROID_LOG_DEBUG, "edge_jni", "strBuf = %s",strBuf);
+
     char *key = (char *) malloc(8);
     memcpy(key, fullkey, 8);
     int destSize;
@@ -226,6 +238,8 @@ Java_cn_cbsd_vpnx_service_VPNXService_VPNX_1login(JNIEnv *env, jobject this, jst
     (*env)->SetObjectField(env, glo_con, fid_UrlandSuffix, server);
     (*env)->SetObjectField(env, glo_con, fid_jsonData, js_uploadJson);
     (*env)->CallVoidMethod(env, glo_con, post);
+
+
     free(key);
     free(js_Enc);
     free(uploadJson);
@@ -234,6 +248,8 @@ Java_cn_cbsd_vpnx_service_VPNXService_VPNX_1login(JNIEnv *env, jobject this, jst
     (*env)->DeleteLocalRef(env, js_uploadJson);
     (*env)->DeleteLocalRef(env, server);
     (*env)->DeleteLocalRef(env, cls_ServerConnectTool);
+
+
 }
 
 JNIEXPORT void Java_cn_cbsd_vpnx_service_VPNXService_getResult(JNIEnv *env, jobject this) {
@@ -339,6 +355,7 @@ JNIEXPORT void Java_cn_cbsd_vpnx_service_VPNXService_getResult(JNIEnv *env, jobj
     (*env)->ReleaseStringChars(env, str_response, response);
 //    (*env)->DeleteGlobalRef(env, glo_callback);
 //    (*env)->DeleteGlobalRef(env, glo_con);
+
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -827,7 +844,6 @@ void InitEdgeStatus(void) {
     status.cmd.trace_vlevel = 1;
     status.cmd.vpn_fd = -1;
     status.cmd.logpath = NULL;
-
     status.tid = -1;
     status.jvm = NULL;
     status.jobj_service = NULL;
@@ -836,7 +852,6 @@ void InitEdgeStatus(void) {
     status.start_edge = NULL;
     status.stop_edge = NULL;
     status.report_edge_status = NULL;
-
     status.edge_type = EDGE_TYPE_NONE;
     status.running_status = EDGE_STAT_DISCONNECT;
 }
